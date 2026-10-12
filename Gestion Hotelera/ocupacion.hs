@@ -1,48 +1,49 @@
-
 module Ocupacion where
 
 import Modelos
 
 
--- F: habitacionOcupada
+-- F: estaOcupada
 -- E: habitacion, fecha y lista de reservas
 -- S: True si esta ocupada, False si esta libre
 -- O: revisar si una habitacion esta ocupada en una fecha
 
-habitacionOcupada :: Habitacion -> String -> [Reserva] -> Bool
-habitacionOcupada habitacion fecha reservas =
+estaOcupada :: Habitacion -> String -> [Reserva] -> Bool
+estaOcupada habitacion fecha reservas =
 
-    or [ idHabitacion habitacion `elem` map idHabitacion (habitaciones reserva)
+    or [ idHabitacion habitacion == idHabitacion (habitacionOcupada ocupacion)
        && fecha >= fechaEntrada reserva
        && fecha < fechaSalida reserva
        && estadoReserva reserva /= Cancelada
+
        | reserva <- reservas
+       , ocupacion <- ocupaciones reserva
        ]
 
 
 -- F: habitacionesOcupadas
--- E: fecha, habitaciones y reservaciones
+-- E: fecha, lista de habitaciones y reservas
 -- S: lista de habitaciones ocupadas
--- O: obtener las habitaciones ocupadas en una fecha
+-- O: mostrar las habitaciones ocupadas en una fecha
 
 habitacionesOcupadas :: String -> [Habitacion] -> [Reserva] -> [Habitacion]
 habitacionesOcupadas fecha listaHabitaciones reservas =
 
     [ habitacion
     | habitacion <- listaHabitaciones
-    , habitacionOcupada habitacion fecha reservas
+    , estaOcupada habitacion fecha reservas
     ]
 
 
 -- F: habitacionesLibres
--- E: fecha, habitaciones y reservaciones
+-- E: fecha, lista de habitaciones y reservas
 -- S: lista de habitaciones libres
--- O: obtener las habitaciones disponibles en una fecha
+-- O: mostrar las habitaciones disponibles en una fecha
 
 habitacionesLibres :: String -> [Habitacion] -> [Reserva] -> [Habitacion]
 habitacionesLibres fecha listaHabitaciones reservas =
 
     [ habitacion
     | habitacion <- listaHabitaciones
-    , not (habitacionOcupada habitacion fecha reservas)
+    , not (estaOcupada habitacion fecha reservas)
     ]
