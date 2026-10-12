@@ -1,7 +1,9 @@
 module Estadisticas where
 
 import Modelos
-
+import Data.Time
+import Data.List (sortBy)
+import Data.Ord (comparing)
 
 -- F: totalConImpuesto
 -- E: una reservacion
@@ -97,3 +99,65 @@ totalHuespedes mes anio reservas =
         -- Revisamos el año
         , take 4 (fechaEntrada reserva) == anio
         ]
+
+
+-- F: convertirFecha
+-- E: fecha escrita como texto
+-- S: fecha convertida o Nothing
+-- O: convertir una fecha para poder trabajar con ella
+
+convertirFecha :: String -> Maybe Day
+convertirFecha fecha =
+    parseTimeM True defaultTimeLocale "%Y-%m-%d" fecha
+
+
+-- F: diasReserva
+-- E: una reservacion
+-- S: lista de dias que ocupa la reservacion
+-- O: obtener los dias entre entrada y salida
+
+diasReserva :: Reserva -> [Day]
+diasReserva reserva =
+    case (convertirFecha (fechaEntrada reserva),
+          convertirFecha (fechaSalida reserva)) of
+
+        (Just entrada, Just salida) ->
+            [entrada .. addDays (-1) salida]
+
+        _ ->
+            []
+
+
+-- F: contarOcupacion
+-- E: numero del dia y lista de reservas
+-- S: cantidad de habitaciones ocupadas
+-- O: contar la ocupacion de un dia de la semana
+
+contarOcupacion :: Int -> [Reserva] -> Int
+contarOcupacion numero reservas =
+    sum [ length (habitaciones reserva)
+        | reserva <- reservas
+        , estadoReserva reserva /= Cancelada
+        , dia <- diasReserva reserva
+        , let (_, _, diaSemana) =
+                toWeekDate dia
+        , diaSemana == numero
+        ]
+
+
+-- F: topTresDias
+-- E: lista de reservas
+-- S: los tres dias con mayor ocupacion
+-- O: ordenar los dias segun la ocupacion
+
+topTresDias :: [Reserva] -> [(String, Int)]
+topTresDias reservas =
+    take 3 (sortBy (flip (comparing snd)) datos)
+    where
+        nombres = ["Lunes", "Martes", "Miercoles",
+                   "Jueves", "Viernes", "Sabado", "Domingo"]
+
+        datos =
+            [ (nombre, contarOcupacion numero reservas)
+            | (numero, nombre) <- zip [1..7] nombres
+            ]
