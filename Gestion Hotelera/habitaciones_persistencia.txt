@@ -1,0 +1,16 @@
+H001,Estandar,una habitacion con cama queen,3
+H002,Estandar,una habitacion con cama queen,3
+H003,Estandar,una habitacion con cama queen,3
+H004,Suite,Habitacion de lujo con vista al mar,2
+H005,Suite,Habitacion de lujo con vista al mar,2
+H006,Suite,Habitacion de lujo con vista al mar,2
+H007,Suite,Habitacion de lujo con vista al mar,2
+H008,Familiar,Habitacion amplia para familias,5
+H009,Presidencial,Suite de lujo con jacuzzi,2
+H010,Presidencial,Suite de lujo con jacuzzi,2
+H011,Presidencial,Suite de lujo con jacuzzi,2
+H012,Presidencial,Suite de lujo con jacuzzi,2
+H013,Regular,Cuarto Grande,2
+H014,Regular,Cuarto Grande,2
+H015,Regular,Cuarto Grande,2
+H016,Regular,Cuarto Grande,2
