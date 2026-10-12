@@ -1,0 +1,2 @@
+Estandar,descripcion vieja,3
+Presidencial,Suite de lujo con jacuzzi,2
