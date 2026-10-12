@@ -1,0 +1,5 @@
+Estandar,una habitacion con cama queen,3
+Suite,Habitacion de lujo con vista al mar,2
+Familiar,Habitacion amplia para familias,5
+Presidencial,Suite de lujo con jacuzzi,2
+Regular,Cuarto Grande,2
