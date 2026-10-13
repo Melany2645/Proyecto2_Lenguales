@@ -1,7 +1,9 @@
 module Reservaciones where
 
-import Data.Time
+import Data.Time (Day, parseTimeM, defaultTimeLocale)
 import Data.List
+import Data.Char (toLower, IsSpace)
+import Text.Read (readMaybe)
 
 -- Primero los tipos de datos
 
@@ -30,7 +32,37 @@ data Reservacion = Reservacion {
     montoReservacion :: Double
 } deriving (Show, Eq)
 
+
+-- Todo tipo de validaciones, enteros, positivos, chars, fechas, cantidad por habitación
 -- Validación de cantidades de huéspedes
+-- Validación de espacios vacios
+
+-- Validamos que el texto no esté vacío ni contenga solo espacios
+textoValido :: String -> Bool
+textoValido texto = not (all isSpace texto)
+
+-- Comparar los textos sin distinguir mayúsculas y minúsculas
+igualSinDistinguir :: String -> String -> Bool
+igualSinDistinguir texto1 texto2 =
+    map toLower texto1 == map toLower texto2
+
+-- Validación de enteros, no se aceptan ni letras ni decimales
+leerEntero :: String -> Maybe Int
+leerEntero texto = 
+    readMaybe texto
+
+-- Validación de positivos
+esPositivo :: Int -> Bool
+esPositivo n = n > 0
+
+-- Validación de que sea cero o positivo
+esCeroOPositivo :: Int -> Bool
+esCeroOPositivo n = n >= 0
+
+-- Validación de fechas, que sean válidas y que la fecha de entrada sea menor a la de salida
+leerFecha :: String -> Maybe Day
+leerFecha texto =
+    parseTimeM True defaultTimeLocale "%Y-%m-%d" texto
 
 validarHuespedes :: Habitacion -> Int -> Int -> Bool
 validarHuespedes habitacion adultos ninos =
