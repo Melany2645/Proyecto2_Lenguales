@@ -2,11 +2,10 @@ module HotelInformacion where
 
 import Modelos
 import System.IO (hFlush, stdout)
--- ============================================
--- FUNCIONES DEL MÓDULO
--- ============================================
 
--- | Carga la información del hotel desde la entrada del usuario
+-- FUNCIONES DEL MÓDULO
+
+-- Carga la información del hotel desde la entrada del usuario
 cargarInfoHotel :: Maybe HotelInfo -> IO (Maybe HotelInfo)
 cargarInfoHotel _ = do
     putStrLn "--- Ingrese los datos del Hotel ---"
@@ -37,7 +36,7 @@ cargarInfoHotel _ = do
     putStrLn "\n[OK] Informacion del hotel cargada."
     return (Just info)
 
--- | Muestra la información actual del hotel
+-- Muestra la información actual del hotel
 mostrarInfoHotel :: Maybe HotelInfo -> IO ()
 mostrarInfoHotel Nothing = 
     putStrLn "[AVISO] No hay informacion del hotel."

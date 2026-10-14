@@ -11,19 +11,31 @@ import Text.Read (readMaybe)
 import qualified Reservaciones as R
 import qualified Estadisticas as E
 import System.IO (hFlush, stdout)
--- ============================================
--- FUNCIONES AUXILIARES LOCALES
--- ============================================
 
+-- Funciones auxiliares
+
+-- E: Ninguna entrada
+-- S: Limpia la pantalla de la consola
+-- R: Ninguna
+-- F: Se encarga de limpiar la pantalla de la consola para mejorar la presentación del menú y las opciones.
 limpiarPantalla :: IO ()
 limpiarPantalla = putStr "\ESC[2J\ESC[H"
 
+-- E: Ninguna entrada
+-- S: Pausa la ejecución hasta que el usuario presione ENTER
+-- R: Ninguna
+-- F: Se encarga de pausar la ejecución del programa hasta que el usuario presione ENTER.
 pausar :: IO ()
 pausar = do
     putStrLn "\nPresione ENTER para continuar..."
     _ <- getLine
     return ()
 
+-- E: Una lista de líneas de texto
+-- S: Una lista de tipos de habitación parseados
+-- R: Una lista de líneas de texto válidas
+-- F: Se encarga de convertir una lista de líneas de texto en una lista de tipos de habitación, 
+-- ignorando líneas vacías y manejando errores de parseo.
 separarPorComasLocal :: String -> [String]
 separarPorComasLocal [] = []
 separarPorComasLocal texto =

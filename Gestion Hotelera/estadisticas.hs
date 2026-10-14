@@ -1,5 +1,15 @@
 module Estadisticas where
 
+-- ============================================
+-- COMPONENTE 4: ESTADÍSTICAS Y REPORTES
+-- ============================================
+-- Este módulo resuelve la parte analítica del sistema hotelero.
+-- Calcula indicadores para conocer el comportamiento del hotel en cuanto a ocupación,
+-- ingresos y patrones de uso por fecha o día de la semana.
+--
+-- Es la capa encargada de traducir datos operativos del hotel en información útil para
+-- la administración y la toma de decisiones.
+
 import Modelos
 import Ocupacion (habitacionesOcupadas, habitacionesLibres)
 import Data.Time

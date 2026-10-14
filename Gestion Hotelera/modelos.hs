@@ -1,19 +1,24 @@
 module Modelos where
 
--- ============================================
--- ESTADOS Y TIPOS BÁSICOS
--- ============================================
+-- COMPONENTE 1: Modelos de datos del sistema hotelero 
 
--- | Estados que puede tener una reservación
+-- Este módulo define los tipos de datos base del sistema hotelero.
+-- Representa la información del hotel, las habitaciones, las tarifas,
+-- las ocupaciones, las reservas, las facturas y el estado global del sistema.
+--
+-- La idea central es que todo el proyecto trabaje con un mismo modelo de datos,
+-- evitando inconsistencias entre la lógica de reservas, facturación y estadísticas.
+
+-- Estadías 
+
+-- Estados que puede tener una reservación
 data Estado = Activa | Facturada | Cancelada
     deriving (Show, Read, Eq)
 
 
--- ============================================
--- INFORMACIÓN DEL HOTEL 
--- ============================================
+-- Información del hotel
 
--- | Datos de la empresa gestora del hotel
+-- Datos de la empresa gestora del hotel
 data HotelInfo = HotelInfo
     { nombreEmpresa  :: String
     , cedulaJuridica :: String
@@ -24,11 +29,9 @@ data HotelInfo = HotelInfo
     } deriving (Show, Eq)
 
 
--- ============================================
--- TIPOS DE HABITACIÓN 
--- ============================================
+-- Tipos de habitaciones
 
--- | Tipo de habitación (Estandar, Suite, etc.)
+-- Tipo de habitación
 data TipoHabitacion = TipoHabitacion
     { nombreTH     :: String   -- Nombre único del tipo
     , descripcion  :: String   -- Descripción del tipo
@@ -36,33 +39,27 @@ data TipoHabitacion = TipoHabitacion
     } deriving (Show, Read, Eq)
 
 
--- ============================================
--- HABITACIONES
--- ============================================
+-- Habitaciones
 
--- | Habitación individual del hotel
+-- Habitación individual del hotel
 data Habitacion = Habitacion
     { idHabitacion   :: String          -- Identificador (ej: "H001")
     , tipoHabitacion :: TipoHabitacion  -- Tipo al que pertenece
     } deriving (Show, Read, Eq)
 
 
--- ============================================
--- TARIFAS
--- ============================================
+-- Tarifas
 
--- | Tarifa por persona según temporada y tipo de huésped
+-- Tarifa por persona según temporada y tipo de huésped
 data Tarifa = Tarifa
     { codigoTarifa :: Int      -- Código 1 a 8
     , montoTarifa  :: Double   -- Monto en colones por persona por día
     } deriving (Show, Eq)
 
 
--- ============================================
--- OCUPACIÓN DE HABITACIÓN
--- ============================================
+-- Ocupación de habitaciones
 
--- | Detalle de ocupación de una habitación dentro de una reserva
+-- Detalle de ocupación de una habitación dentro de una reserva
 data OcupacionHab = OcupacionHab
     { habitacionOcupada :: Habitacion  -- La habitación específica
     , adultosHab        :: Int         -- Adultos en esta habitación
@@ -70,11 +67,9 @@ data OcupacionHab = OcupacionHab
     } deriving (Show, Read, Eq)
 
 
--- ============================================
--- RESERVACIONES
--- ============================================
+-- Reservaciones
 
--- | Información completa de una reservación
+-- Información completa de una reservación
 data Reserva = Reserva
     { idReserva        :: Int              -- Código de la reserva
     , nombreCliente    :: String           -- Persona que hizo la reserva
@@ -89,11 +84,9 @@ data Reserva = Reserva
     } deriving (Show, Read, Eq)
 
 
--- ============================================
--- FACTURAS
--- ============================================
+-- Facturas
 
--- | Información necesaria para una factura
+-- Información necesaria para una factura
 data Factura = Factura
     { idFactura       :: Int      -- Código de la factura
     , reservaFactura  :: Int      -- Código de la reserva facturada
@@ -103,11 +96,9 @@ data Factura = Factura
     } deriving (Show, Eq)
 
 
--- ============================================
--- ESTADO GLOBAL DEL SISTEMA 
--- ============================================
+-- Estado del sistema
 
--- | Estado completo del sistema
+-- Estado completo del sistema
 data EstadoSistema = EstadoSistema
     { estadoInfo     :: Maybe HotelInfo
     , estadoTipos    :: [TipoHabitacion]
@@ -120,7 +111,7 @@ data EstadoSistema = EstadoSistema
     } deriving (Show)
 
 
--- | Estado inicial del sistema
+-- Estado inicial del sistema
 estadoInicial :: EstadoSistema
 estadoInicial = EstadoSistema
     { estadoInfo     = Nothing
