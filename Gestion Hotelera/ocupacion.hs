@@ -1,6 +1,7 @@
 module Ocupacion where
 
 import Modelos
+import Data.Time (Day, defaultTimeLocale, parseTimeM)
 
 
 -- F: estaOcupada
@@ -47,3 +48,81 @@ habitacionesLibres fecha listaHabitaciones reservas =
     | habitacion <- listaHabitaciones
     , not (estaOcupada habitacion fecha reservas)
     ]
+
+-- F: validarFecha
+-- E: fecha ingresada por el usuario
+-- S: True si la fecha existe, False si no
+-- O: evitar fechas incorrectas
+
+validarFecha :: String -> Bool
+validarFecha fecha =
+    case parseTimeM True defaultTimeLocale "%Y-%m-%d" fecha :: Maybe Day of
+        Just _ -> length fecha == 10
+        Nothing -> False
+
+
+-- F: pedirFecha
+-- E: fecha escrita por el usuario
+-- S: fecha valida
+-- O: solicitar una fecha hasta que sea correcta
+
+pedirFecha :: IO String
+pedirFecha = do
+    putStrLn "Ingrese una fecha (AAAA-MM-DD):"
+    fecha <- getLine
+
+    if validarFecha fecha
+        then return fecha
+        else do
+            putStrLn "ERROR: Fecha incorrecta. Use AAAA-MM-DD y una fecha real."
+            pedirFecha
+
+
+-- F: verDisponibilidad
+-- E: habitaciones y reservaciones
+-- S: lista de habitaciones disponibles
+-- O: mostrar las habitaciones libres para una fecha
+
+verDisponibilidad :: [Habitacion] -> [Reserva] -> IO ()
+verDisponibilidad habitaciones reservas = do
+    fecha <- pedirFecha
+
+    let libres = habitacionesLibres fecha habitaciones reservas
+
+    putStrLn ""
+    putStrLn "HABITACIONES DISPONIBLES"
+
+    if null libres
+        then putStrLn "No hay habitaciones disponibles para esa fecha."
+        else mapM_ (\h -> putStrLn (idHabitacion h)) libres
+
+
+-- F: consultarOcupacion
+-- E: habitaciones y reservaciones
+-- S: estado de ocupacion
+-- O: mostrar habitaciones ocupadas y disponibles
+
+consultarOcupacion :: [Habitacion] -> [Reserva] -> IO ()
+consultarOcupacion habitaciones reservas = do
+    fecha <- pedirFecha
+
+    let ocupadas = habitacionesOcupadas fecha habitaciones reservas
+    let libres = habitacionesLibres fecha habitaciones reservas
+
+    putStrLn ""
+    putStrLn "ESTADO DE OCUPACION"
+
+    putStrLn "Habitaciones ocupadas:"
+    if null ocupadas
+        then putStrLn "No hay habitaciones ocupadas."
+        else mapM_ (\h -> putStrLn (idHabitacion h)) ocupadas
+
+    putStrLn ""
+    putStrLn "Habitaciones disponibles:"
+    if null libres
+        then putStrLn "No hay habitaciones disponibles."
+        else mapM_ (\h -> putStrLn (idHabitacion h)) libres
+
+    putStrLn ""
+    putStrLn ("Total ocupadas: " ++ show (length ocupadas))
+    putStrLn ("Total disponibles: " ++ show (length libres))

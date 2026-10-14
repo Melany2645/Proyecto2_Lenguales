@@ -5,7 +5,7 @@ import System.Directory (doesFileExist)
 import System.IO (openFile, IOMode(ReadMode, WriteMode), hSetEncoding, latin1, hGetContents, hPutStr, hClose)
 
 -- ============================================
--- 1. FUNCIONES AUXILIARES DE PARSING (Puras)
+-- 1. FUNCIONES AUXILIARES
 -- ============================================
 
 separarPorComas :: String -> [String]
@@ -63,7 +63,7 @@ guardarTiposEnArchivo tipos ruta = do
     putStrLn ("[OK] Tipos de habitación guardados persistentemente en: " ++ ruta)
 
 -- ============================================
--- 3. FUNCIONES DE FILTRADO (Puras)
+-- 3. FUNCIONES DE FILTRADO
 -- ============================================
 
 obtenerNombres :: [TipoHabitacion] -> [String]
@@ -85,7 +85,7 @@ filtrarNuevos (t:resto) nombresExistentes =
         else t : filtrarNuevos resto nombresExistentes
 
 -- ============================================
--- 4. FUNCIÓN PRINCIPAL DE CARGA (Con persistencia)
+-- 4. FUNCIÓN PRINCIPAL DE CARGA
 -- ============================================
 
 procesarCargaTipos :: [TipoHabitacion] -> FilePath -> IO [TipoHabitacion]

@@ -7,8 +7,10 @@ import Text.Read (readMaybe)
 import Data.Time
     ( Day, DayOfWeek(..), defaultTimeLocale, parseTimeM
     , formatTime, getCurrentTime, getZonedTime, localDay
+    , zonedTimeToLocalTime
     , addDays, dayOfWeek, toGregorian
     )
+import System.IO (hFlush, stdout)
 
 -- ============================================
 -- FUNCIONES AUXILIARES
@@ -26,29 +28,44 @@ leerEntero texto = readMaybe texto
 validarFechas :: Day -> Day -> Day -> Bool
 validarFechas hoy entrada salida = entrada >= hoy && entrada < salida
 
+-- F: pedirRangoFechas
+-- E: Fechas ingresadas por el usuario
+-- S: Fechas de entrada y salida
+-- O: Solicitar y validar las fechas de la reservacion
+
 pedirRangoFechas :: IO (Day, Day, String, String)
 pedirRangoFechas = do
+
     putStr "Fecha de entrada (AAAA-MM-DD): "
+    hFlush stdout
     entradaTexto <- getLine
+
     putStr "Fecha de salida (AAAA-MM-DD): "
+    hFlush stdout
     salidaTexto <- getLine
 
     case (leerFecha entradaTexto, leerFecha salidaTexto) of
+
         (Just entrada, Just salida) -> do
+
             ahora <- getZonedTime
             let hoy = localDay (zonedTimeToLocalTime ahora)
+
             if entrada < hoy
                 then do
                     putStrLn "La fecha de entrada no puede ser anterior a hoy."
                     pedirRangoFechas
+
                 else if not (validarFechas hoy entrada salida)
                     then do
                         putStrLn "La salida debe ser posterior a la entrada."
                         pedirRangoFechas
+
                     else
                         return (entrada, salida, entradaTexto, salidaTexto)
+
         _ -> do
-            putStrLn "Fecha inválida. Use formato AAAA-MM-DD."
+            putStrLn "Fecha invalida. Use formato AAAA-MM-DD."
             pedirRangoFechas
 
 -- ============================================
@@ -110,40 +127,58 @@ mostrarHabitacion hab = do
 -- SELECCIÓN DE HABITACIONES
 -- ============================================
 
+-- F: seleccionarHabitaciones
+-- E: Habitaciones disponibles y seleccionadas
+-- S: Lista de habitaciones seleccionadas
+-- O: Permitir seleccionar habitaciones y validar huespedes
+
 seleccionarHabitaciones :: [Habitacion] -> [OcupacionHab] -> IO [OcupacionHab]
 seleccionarHabitaciones disponibles seleccionadas = do
-    putStrLn "\nIngrese el ID de una habitación (o ENTER para terminar):"
+
+    putStrLn "\nIngrese el ID de una habitacion (o ENTER para terminar):"
     putStr "ID: "
+    hFlush stdout
     codigo <- getLine
 
     if null codigo
         then return (reverse seleccionadas)
+
         else case find (\hab -> idHabitacion hab == codigo) disponibles of
+
             Nothing -> do
-                putStrLn "[ERROR] Habitación no disponible o ID incorrecto."
+                putStrLn "[ERROR] Habitacion no disponible o ID incorrecto."
                 seleccionarHabitaciones disponibles seleccionadas
+
             Just hab ->
                 if any (\oc -> idHabitacion (habitacionOcupada oc) == codigo) seleccionadas
                     then do
-                        putStrLn "[ERROR] Esa habitación ya fue seleccionada."
+                        putStrLn "[ERROR] Esa habitacion ya fue seleccionada."
                         seleccionarHabitaciones disponibles seleccionadas
+
                     else do
-                        putStr "  Cantidad de adultos: "
+                        putStr "Cantidad de adultos: "
+                        hFlush stdout
                         adultosTexto <- getLine
-                        putStr "  Cantidad de niños: "
+
+                        putStr "Cantidad de ninos: "
+                        hFlush stdout
                         ninosTexto <- getLine
 
                         case (leerEntero adultosTexto, leerEntero ninosTexto) of
+
                             (Just adultos, Just ninos) ->
                                 if validarHuespedes hab adultos ninos
                                     then do
                                         let nuevaOcupacion = OcupacionHab hab adultos ninos
+                                        putStrLn "Habitacion agregada."
                                         seleccionarHabitaciones disponibles (nuevaOcupacion : seleccionadas)
+
                                     else do
-                                        putStrLn "[ERROR] Capacidad excedida o huéspedes inválidos."
+                                        putStrLn "[ERROR] Capacidad excedida o huespedes invalidos."
                                         seleccionarHabitaciones disponibles seleccionadas
+
                             _ -> do
-                                putStrLn "[ERROR] Ingrese números válidos."
+                                putStrLn "[ERROR] Ingrese numeros validos."
                                 seleccionarHabitaciones disponibles seleccionadas
 
 -- ============================================
@@ -211,6 +246,7 @@ registrarReservacion sistema = do
                 return sistema
             else do
                 putStr "Nombre del cliente: "
+                hFlush stdout
                 nombre <- getLine
 
                 if not (textoValido nombre)
@@ -304,6 +340,7 @@ cancelarReservacion sistema = do
             return sistema
         else do
             putStr "Ingrese el número de reserva a cancelar: "
+            hFlush stdout
             idTexto <- getLine
 
             case leerEntero idTexto of

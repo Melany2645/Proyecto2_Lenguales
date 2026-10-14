@@ -14,3 +14,5 @@ H013,Regular,Cuarto Grande,2
 H014,Regular,Cuarto Grande,2
 H015,Regular,Cuarto Grande,2
 H016,Regular,Cuarto Grande,2
+H017,Deluxe,Habitacion moderna con balcon y cama king,2
+H018,Deluxe,Habitacion moderna con balcon y cama king,2

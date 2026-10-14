@@ -9,7 +9,8 @@ import Data.List (find)
 import Text.Read (readMaybe)
 
 import qualified Reservaciones as R
-
+import qualified Estadisticas as E
+import System.IO (hFlush, stdout)
 -- ============================================
 -- FUNCIONES AUXILIARES LOCALES
 -- ============================================
@@ -89,24 +90,37 @@ opcionInfoHotel infoActual = do
 -- OPCION 2: CARGAR TIPOS
 -- ============================================
 
+-- F: opcionCargarTipos
+-- E: Lista de tipos de habitaciones existentes
+-- S: Lista actualizada de tipos
+-- O: Cargar nuevos tipos desde un archivo TXT
+
 opcionCargarTipos :: [TipoHabitacion] -> IO [TipoHabitacion]
 opcionCargarTipos tiposActuales = do
+
     limpiarPantalla
-    putStrLn "=== CARGAR TIPOS DE HABITACION ==="
-    mostrarTipos tiposActuales
-    putStr "\nRuta del archivo de tipos: "
+
+    putStrLn "========================================"
+    putStrLn "       CARGAR TIPOS DE HABITACION"
+    putStrLn "========================================"
+
+    putStr "Ingrese la ruta del archivo TXT: "
+    hFlush stdout
+
     ruta <- getLine
 
     if null ruta || all (== ' ') ruta
         then do
-            putStrLn "La ruta no puede estar vacia."
+            putStrLn "[ERROR] La ruta no puede estar vacia."
             pausar
             return tiposActuales
+
         else do
             nuevosTipos <- procesarCargaTipos tiposActuales ruta
-            pausar
-            return nuevosTipos
 
+            pausar
+
+            return nuevosTipos
 -- ============================================
 -- OPCION 3: ASIGNAR HABITACIONES
 -- ============================================
@@ -139,7 +153,7 @@ opcionCargarTarifas _ = do
     limpiarPantalla
     putStrLn "=== CARGA DE TARIFAS ==="
     putStrLn "Las tarifas existentes seran reemplazadas por las del archivo."
-    putStr "\nIngrese la ruta del archivo (ej: tarifas.txt): "
+    putStrLn "Ingrese la ruta del archivo (ej: tarifas.txt): "
     ruta <- getLine
     
     if null ruta || all (== ' ') ruta
@@ -206,7 +220,7 @@ opcionConsultarDisponibilidad sistema = do
             pausar
             return sistema
         else do
-            putStr "Ingrese una fecha para consultar (AAAA-MM-DD): "
+            putStrLn "Ingrese una fecha para consultar (AAAA-MM-DD):"
             fechaTexto <- getLine
             
             if not (validarFormatoFecha fechaTexto)
@@ -276,19 +290,24 @@ mostrarHabitacionDisponible hab = do
            ++ " (Capacidad: " ++ show (maxHuespedes (tipoHabitacion hab)) ++ ")")
 
 -- ============================================
--- OPCION 8: ESTADISTICAS (Persona 3 - Pendiente)
+-- OPCION 8: ESTADISTICAS
 -- ============================================
+    
+-- F: opcionEstadisticas
+-- E: Estado actual del sistema
+-- S: Estado del sistema sin modificaciones
+-- O: Mostrar las estadisticas de ocupacion del hotel
 
 opcionEstadisticas :: EstadoSistema -> IO EstadoSistema
 opcionEstadisticas sistema = do
     limpiarPantalla
-    putStrLn "=== ESTADISTICAS DE OCUPACION ==="
-    putStrLn "[EN DESARROLLO - Persona 3]"
-    pausar
+
+    E.menuEstadisticas sistema
+
     return sistema
 
 -- ============================================
--- MENU PRINCIPAL (Loop recursivo)
+-- MENU PRINCIPAL
 -- ============================================
 
 menuAdministrativo :: EstadoSistema -> IO EstadoSistema

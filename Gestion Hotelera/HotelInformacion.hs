@@ -1,7 +1,7 @@
 module HotelInformacion where
 
 import Modelos
-
+import System.IO (hFlush, stdout)
 -- ============================================
 -- FUNCIONES DEL MÓDULO
 -- ============================================
@@ -11,18 +11,29 @@ cargarInfoHotel :: Maybe HotelInfo -> IO (Maybe HotelInfo)
 cargarInfoHotel _ = do
     putStrLn "--- Ingrese los datos del Hotel ---"
     putStr "Nombre de la empresa: "
+    hFlush stdout
     nombre <- getLine
+
     putStr "Cedula juridica: "
+    hFlush stdout
     cedula <- getLine
+
     putStr "Sitio web: "
+    hFlush stdout
     web <- getLine
+
     putStr "Telefono: "
-    tel <- getLine
+    hFlush stdout
+    telefono <- getLine
+
     putStr "Pais: "
+    hFlush stdout
     pais <- getLine
+
     putStr "Provincia: "
-    prov <- getLine
-    let info = HotelInfo nombre cedula web tel pais prov
+    hFlush stdout
+    provincia <- getLine
+    let info = HotelInfo nombre cedula web telefono pais provincia
     putStrLn "\n[OK] Informacion del hotel cargada."
     return (Just info)
 

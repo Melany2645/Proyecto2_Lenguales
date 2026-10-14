@@ -56,7 +56,7 @@ mostrarReservaCompleta reserva = do
     putStrLn ("  Adultos: " ++ show (totalAdultos reserva))
     putStrLn ("  Niños: " ++ show (totalNinos reserva))
     putStrLn ("  Estado: " ++ show (estadoReserva reserva))
-    putStrLn ("  Subtotal: ₡" ++ show (subtotalReserva reserva))
+    putStrLn ("  Subtotal: CRC" ++ show (subtotalReserva reserva))
     putStrLn ("  Habitaciones:")
     mapM_ mostrarOcupacionDetalle (ocupaciones reserva)
     putStrLn ""

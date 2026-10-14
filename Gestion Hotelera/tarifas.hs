@@ -125,7 +125,7 @@ mostrarTarifas tarifas = do
 mostrarUnaTarifa :: Tarifa -> IO ()
 mostrarUnaTarifa tarifa = do
     putStrLn ("  Código: " ++ show (codigoTarifa tarifa) 
-           ++ " | Monto: ₡" ++ show (montoTarifa tarifa))
+           ++ " | Monto: CRC" ++ show (montoTarifa tarifa))
 
 -- ============================================
 -- 7. REGISTRAR O ACTUALIZAR UNA TARIFA MANUALMENTE (Bonus)
