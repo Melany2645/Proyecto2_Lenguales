@@ -2,6 +2,7 @@ module CantDeHabitaciones where
 
 import Modelos
 import System.IO (openFile, IOMode(ReadMode, WriteMode), hSetEncoding, latin1, hGetContents, hPutStr, hClose)
+import Text.Read (readMaybe)
 
 -- ============================================
 -- 1. FUNCIONES AUXILIARES DE GENERACIÓN (Puras)
@@ -36,10 +37,22 @@ generarHabitacionesRecursivo idActual ((tipo, cantidad):resto) =
 obtenerSiguienteId :: [Habitacion] -> Int
 obtenerSiguienteId [] = 1
 obtenerSiguienteId habs =
-    let extraerNumero id = read (tail id) :: Int
-        idsNumericos = map (extraerNumero . idHabitacion) habs
-        maxId = maximum idsNumericos
-    in maxId + 1
+    case idsNumericos of
+        [] -> 1
+        _ -> maximum idsNumericos + 1
+    where
+        idsNumericos =
+            [ numero
+            | hab <- habs
+            , Just numero <- [extraerNumero (idHabitacion hab)]
+            ]
+
+        extraerNumero :: String -> Maybe Int
+        extraerNumero identificador = do
+            numero <- case identificador of
+                'H':sufijo -> readMaybe sufijo
+                _ -> readMaybe identificador
+            if numero > 0 then Just numero else Nothing
 
 -- | Obtiene los nombres de los tipos que ya tienen habitaciones
 obtenerTiposConHabitaciones :: [Habitacion] -> [String]

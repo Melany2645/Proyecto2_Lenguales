@@ -1,218 +1,323 @@
+
 module MenuAdministrativo where
 
 import Modelos
-import HotelInformacion
+import HotelInformacion hiding (pausar)
 import TiposHabitacion
 import CantDeHabitaciones
 import System.Directory (doesFileExist)
 
+import qualified Tarifas as T
+import qualified Reservaciones as R
+
 -- ============================================
--- FUNCIONES AUXILIARES LOCALES
+-- FUNCIONES AUXILIARES
 -- ============================================
 
 limpiarPantalla :: IO ()
 limpiarPantalla = putStr "\ESC[2J\ESC[H"
 
+pausar :: IO ()
+pausar = do
+    putStrLn "\nPresione ENTER para continuar..."
+    _ <- getLine
+    return ()
+
 mostrarMenu :: IO String
 mostrarMenu = do
     limpiarPantalla
     putStrLn "=================================================="
-    putStrLn "  SISTEMA DE GESTIÓN HOTELERA"
-    putStrLn "  Menú Administrativo"
+    putStrLn "       SISTEMA DE GESTION HOTELERA"
+    putStrLn "             MENU ADMINISTRATIVO"
     putStrLn "=================================================="
-    putStrLn "1. Información del hotel"
-    putStrLn "2. Cargar tipo de habitaciones"
-    putStrLn "3. Asignar Cantidad de habitaciones por tipo"
+    putStrLn "1. Informacion del hotel"
+    putStrLn "2. Cargar tipos de habitaciones"
+    putStrLn "3. Asignar habitaciones por tipo"
     putStrLn "4. Ver habitaciones"
-    putStrLn "5. Carga de Tarifas"
-    putStrLn "6. Consultar Reservaciones"
-    putStrLn "7. Consultar estado de ocupación"
-    putStrLn "8. Estadísticas de ocupación"
+    putStrLn "5. Carga de tarifas"
+    putStrLn "6. Consultar reservaciones"
+    putStrLn "7. Consultar disponibilidad"
+    putStrLn "8. Estadisticas de ocupacion"
     putStrLn "9. Salir"
     putStrLn "=================================================="
-    putStr "\nSeleccione una opción: "
+    putStr "Seleccione una opcion: "
     getLine
 
 -- ============================================
--- OPCIÓN 1: INFORMACIÓN DEL HOTEL
+-- OPCION 1: INFORMACION DEL HOTEL
 -- ============================================
+
 opcionInfoHotel :: Maybe HotelInfo -> IO (Maybe HotelInfo)
 opcionInfoHotel infoActual = do
     limpiarPantalla
-    putStrLn "=== INFORMACIÓN DEL HOTEL ===\n"
-    putStrLn "1. Cargar información del hotel"
-    putStrLn "2. Ver información actual"
-    putStrLn "3. Guardar información en archivo"
-    putStrLn "4. Cargar información desde archivo"
-    putStrLn "5. Volver al menú administrativo"
-    putStr "\nSeleccione una opción: "
+    putStrLn "=== INFORMACION DEL HOTEL ==="
+    putStrLn "1. Cargar informacion del hotel"
+    putStrLn "2. Ver informacion actual"
+    putStrLn "3. Guardar informacion en archivo"
+    putStrLn "4. Cargar informacion desde archivo"
+    putStrLn "5. Volver"
+    putStr "Seleccione una opcion: "
     opcion <- getLine
-    
+
     case opcion of
-        "1" -> do nuevaInfo <- cargarInfoHotel infoActual; pausar; return nuevaInfo
-        "2" -> do mostrarInfoHotel infoActual; pausar; return infoActual
-        "3" -> do guardarInfoHotel infoActual "hotel_info.txt"; pausar; return infoActual
-        "4" -> do infoLeida <- leerInfoHotel infoActual "hotel_info.txt"; pausar; return infoLeida
+        "1" -> do
+            nuevaInfo <- cargarInfoHotel infoActual
+            pausar
+            return nuevaInfo
+
+        "2" -> do
+            mostrarInfoHotel infoActual
+            pausar
+            return infoActual
+
+        "3" -> do
+            guardarInfoHotel infoActual "hotel_info.txt"
+            pausar
+            return infoActual
+
+        "4" -> do
+            infoLeida <- leerInfoHotel infoActual "hotel_info.txt"
+            pausar
+            return infoLeida
+
         _ -> return infoActual
 
 -- ============================================
--- OPCIÓN 2: CARGAR TIPOS DE HABITACIÓN
+-- OPCION 2: CARGAR TIPOS
 -- ============================================
+
 opcionCargarTipos :: [TipoHabitacion] -> IO [TipoHabitacion]
 opcionCargarTipos tiposActuales = do
     limpiarPantalla
-    putStrLn "=== CARGAR TIPO DE HABITACIONES ===\n"
-    putStrLn "Tipos actualmente en el sistema:"
+    putStrLn "=== CARGAR TIPOS DE HABITACION ==="
+
     mostrarTipos tiposActuales
-    putStr "\nIngrese la ruta del archivo (ej: tipos.txt): "
+
+    putStr "\nRuta del archivo de tipos: "
     ruta <- getLine
-    
+
     if null ruta || all (== ' ') ruta
         then do
-            putStrLn "\n[ERROR] La ruta no puede estar vacía."
+            putStrLn "La ruta no puede estar vacia."
             pausar
             return tiposActuales
         else do
             nuevosTipos <- procesarCargaTipos tiposActuales ruta
-            putStrLn "\nLista actual de tipos:"
-            mostrarTipos nuevosTipos
             pausar
             return nuevosTipos
 
 -- ============================================
--- OPCIÓN 3: ASIGNAR CANTIDAD DE HABITACIONES
+-- OPCION 3: ASIGNAR HABITACIONES
 -- ============================================
-opcionAsignarHabitaciones :: [Habitacion] -> [TipoHabitacion] -> IO [Habitacion]
-opcionAsignarHabitaciones habsActuales tipos = do
+
+opcionAsignarHabitaciones ::
+    [Habitacion] -> [TipoHabitacion] -> IO [Habitacion]
+
+opcionAsignarHabitaciones habitaciones tipos = do
     limpiarPantalla
-    putStrLn "=== ASIGNAR CANTIDAD DE HABITACIONES ===\n"
-    nuevasHabs <- asignarHabitaciones habsActuales tipos
+    putStrLn "=== ASIGNAR HABITACIONES ==="
+    nuevasHabitaciones <- asignarHabitaciones habitaciones tipos
     pausar
-    return nuevasHabs
+    return nuevasHabitaciones
 
 -- ============================================
--- OPCIÓN 4: VER HABITACIONES
+-- OPCION 4: VER HABITACIONES
 -- ============================================
+
 opcionVerHabitaciones :: [Habitacion] -> IO ()
-opcionVerHabitaciones habs = do
+opcionVerHabitaciones habitaciones = do
     limpiarPantalla
-    putStrLn "=== VER HABITACIONES ===\n"
-    mostrarHabitaciones habs
+    putStrLn "=== HABITACIONES DEL HOTEL ==="
+    CantDeHabitaciones.mostrarHabitaciones habitaciones
     pausar
 
 -- ============================================
--- OTRAS OPCIONES (EN DESARROLLO)
+-- OPCION 5: TARIFAS
 -- ============================================
-opcionCargarTarifas :: IO ()
-opcionCargarTarifas = do limpiarPantalla; putStrLn "=== CARGA DE TARIFAS ===\n[EN DESARROLLO]"; pausar
 
-opcionConsultarReservas :: IO ()
-opcionConsultarReservas = do limpiarPantalla; putStrLn "=== CONSULTAR RESERVACIONES ===\n[EN DESARROLLO]"; pausar
+opcionCargarTarifas :: [Tarifa] -> IO [Tarifa]
+opcionCargarTarifas tarifasActuales = do
+    limpiarPantalla
+    putStrLn "=== CARGA DE TARIFAS ==="
 
-opcionConsultarOcupacion :: IO ()
-opcionConsultarOcupacion = do limpiarPantalla; putStrLn "=== CONSULTAR ESTADO DE OCUPACIÓN ===\n[EN DESARROLLO]"; pausar
+    T.mostrarTarifas tarifasActuales
 
-opcionEstadisticas :: IO ()
-opcionEstadisticas = do limpiarPantalla; putStrLn "=== ESTADÍSTICAS DE OCUPACIÓN ===\n[EN DESARROLLO]"; pausar
+    putStrLn "\n1. Registrar o actualizar tarifa"
+    putStrLn "2. Volver"
+    putStr "Seleccione una opcion: "
+    opcion <- getLine
 
--- ============================================
--- MENÚ PRINCIPAL (Maneja 3 estados)
--- ============================================
-menuAdministrativo :: Maybe HotelInfo -> [TipoHabitacion] -> [Habitacion] -> IO (Maybe HotelInfo, [TipoHabitacion], [Habitacion])
-menuAdministrativo infoHotel tiposHab habs = do
-    opcion <- mostrarMenu
-    
     case opcion of
         "1" -> do
-            nuevaInfo <- opcionInfoHotel infoHotel
-            menuAdministrativo nuevaInfo tiposHab habs
-        "2" -> do
-            nuevosTipos <- opcionCargarTipos tiposHab
-            menuAdministrativo infoHotel nuevosTipos habs
-        "3" -> do
-            nuevasHabs <- opcionAsignarHabitaciones habs tiposHab
-            menuAdministrativo infoHotel tiposHab nuevasHabs
-        "4" -> do
-            opcionVerHabitaciones habs
-            menuAdministrativo infoHotel tiposHab habs
-        "5" -> do
-            opcionCargarTarifas
-            menuAdministrativo infoHotel tiposHab habs
-        "6" -> do
-            opcionConsultarReservas
-            menuAdministrativo infoHotel tiposHab habs
-        "7" -> do
-            opcionConsultarOcupacion
-            menuAdministrativo infoHotel tiposHab habs
-        "8" -> do
-            opcionEstadisticas
-            menuAdministrativo infoHotel tiposHab habs
-        "9" -> do
-            limpiarPantalla
-            putStrLn "Saliendo del Menú Administrativo..."
-            return (infoHotel, tiposHab, habs)
-        _ -> do
-            putStrLn "\n[ERROR] Opción no válida."
-            menuAdministrativo infoHotel tiposHab habs
+            tarifasNuevas <- T.registrarTarifa tarifasActuales
+            pausar
+            return tarifasNuevas
+
+        _ -> return tarifasActuales
 
 -- ============================================
--- MAIN (Con carga automática de persistencia mejorada)
+-- OPCION 6: RESERVACIONES
 -- ============================================
+
+opcionConsultarReservas :: EstadoSistema -> IO EstadoSistema
+opcionConsultarReservas sistema = do
+    limpiarPantalla
+    putStrLn "=== GESTION DE RESERVACIONES ==="
+
+    putStrLn "\n1. Consultar todas las reservaciones"
+    putStrLn "2. Registrar reservacion"
+    putStrLn "3. Cancelar reservacion"
+    putStrLn "4. Volver"
+    putStr "Seleccione una opcion: "
+    opcion <- getLine
+
+    case opcion of
+        "1" -> do
+            R.consultarReservaciones (estadoReservas sistema)
+            pausar
+            return sistema
+
+        "2" -> do
+            sistemaNuevo <- R.registrarReservacion sistema
+            pausar
+            return sistemaNuevo
+
+        "3" -> do
+            sistemaNuevo <- R.cancelarReservacion sistema
+            pausar
+            return sistemaNuevo
+
+        _ -> return sistema
+
+-- ============================================
+-- OPCION 7: DISPONIBILIDAD
+-- ============================================
+
+opcionConsultarOcupacion :: EstadoSistema -> IO ()
+opcionConsultarOcupacion sistema = do
+    limpiarPantalla
+    R.consultarDisponibilidad sistema
+    pausar
+
+-- ============================================
+-- OPCION 8: ESTADISTICAS
+-- ============================================
+
+opcionEstadisticas :: IO ()
+opcionEstadisticas = do
+    limpiarPantalla
+    putStrLn "=== ESTADISTICAS DE OCUPACION ==="
+    putStrLn "Esta opcion esta pendiente de integracion."
+    pausar
+
+-- ============================================
+-- MENU PRINCIPAL
+-- ============================================
+
+menuAdministrativo :: EstadoSistema -> IO EstadoSistema
+menuAdministrativo sistema = do
+    opcion <- mostrarMenu
+
+    case opcion of
+        "1" -> do
+            nuevaInfo <- opcionInfoHotel (estadoInfo sistema)
+            let sistemaNuevo = sistema { estadoInfo = nuevaInfo }
+            menuAdministrativo sistemaNuevo
+
+        "2" -> do
+            nuevosTipos <- opcionCargarTipos (estadoTipos sistema)
+            let sistemaNuevo = sistema { estadoTipos = nuevosTipos }
+            menuAdministrativo sistemaNuevo
+
+        "3" -> do
+            nuevasHabitaciones <-
+                opcionAsignarHabitaciones
+                    (estadoHab sistema)
+                    (estadoTipos sistema)
+
+            let sistemaNuevo = sistema { estadoHab = nuevasHabitaciones }
+            menuAdministrativo sistemaNuevo
+
+        "4" -> do
+            opcionVerHabitaciones (estadoHab sistema)
+            menuAdministrativo sistema
+
+        "5" -> do
+            nuevasTarifas <- opcionCargarTarifas (estadoTarifas sistema)
+            let sistemaNuevo = sistema { estadoTarifas = nuevasTarifas }
+            menuAdministrativo sistemaNuevo
+
+        "6" -> do
+            sistemaNuevo <- opcionConsultarReservas sistema
+            menuAdministrativo sistemaNuevo
+
+        "7" -> do
+            opcionConsultarOcupacion sistema
+            menuAdministrativo sistema
+
+        "8" -> do
+            opcionEstadisticas
+            menuAdministrativo sistema
+
+        "9" -> do
+            limpiarPantalla
+            putStrLn "Saliendo del menu administrativo..."
+            return sistema
+
+        _ -> do
+            putStrLn "Opcion no valida."
+            pausar
+            menuAdministrativo sistema
+
+-- ============================================
+-- CARGA INICIAL
+-- ============================================
+
 main :: IO ()
 main = do
-    putStrLn "Iniciando sistema..."
-    putStrLn ""
-    
-    -- 1. Cargar tipos de habitación guardados
+    putStrLn "Iniciando sistema de gestion hotelera..."
+
+    -- Cargar tipos de habitacion
     existeTipos <- doesFileExist "tipos_persistencia.txt"
-    tiposIniciales <- if existeTipos
-        then do
-            putStrLn "[OK] Cargando tipos de habitación guardados..."
-            lineas <- leerArchivo "tipos_persistencia.txt"
-            let tipos = parsearLineas lineas
-            putStrLn ("[INFO] Se cargaron " ++ show (length tipos) ++ " tipos desde persistencia.")
-            return tipos
-        else do
-            putStrLn "[AVISO] No hay tipos guardados. Iniciando vacío."
-            return []
-    
-    putStrLn ""
-    
-    -- 2. Cargar habitaciones guardadas
-    existeHabs <- doesFileExist "habitaciones_persistencia.txt"
-    habsIniciales <- if existeHabs
-        then do
-            putStrLn "[OK] Cargando habitaciones guardadas..."
-            contenido <- readFile "habitaciones_persistencia.txt"
-            let lineas = lines contenido
-            putStrLn ("[INFO] El archivo tiene " ++ show (length lineas) ++ " líneas.")
-            
-            -- Filtrar líneas vacías
-            let lineasValidas = filter (not . null) lineas
-            putStrLn ("[INFO] Líneas válidas: " ++ show (length lineasValidas))
-            
-            if null lineasValidas
-                then do
-                    putStrLn "[ERROR] El archivo de habitaciones está vacío o corrupto."
-                    putStrLn "[AVISO] Iniciando sin habitaciones."
-                    return []
-                else do
-                    let habs = map lineaAHabitacion lineasValidas
-                    putStrLn ("[INFO] Se cargaron " ++ show (length habs) ++ " habitaciones desde persistencia.")
-                    return habs
-        else do
-            putStrLn "[AVISO] No hay habitaciones guardadas. Iniciando vacío."
-            return []
-    
-    putStrLn ""
-    putStrLn "=================================================="
-    putStrLn " Resumen de carga inicial:"
-    putStrLn ("   - Tipos de habitación: " ++ show (length tiposIniciales))
-    putStrLn ("   - Habitaciones: " ++ show (length habsIniciales))
-    putStrLn "=================================================="
-    putStrLn ""
-    
-    -- 3. Iniciar el menú con todo cargado
-    _ <- menuAdministrativo Nothing tiposIniciales habsIniciales
-    
-    putStrLn "\nPrograma finalizado."
+
+    tiposIniciales <-
+        if existeTipos
+            then do
+                lineas <- leerArchivo "tipos_persistencia.txt"
+                return (parsearLineas lineas)
+            else
+                return []
+
+    -- Cargar habitaciones
+    existeHabitaciones <-
+        doesFileExist "habitaciones_persistencia.txt"
+
+    habitacionesIniciales <-
+        if existeHabitaciones
+            then do
+                contenido <- readFile "habitaciones_persistencia.txt"
+
+                let lineas = filter (not . null) (lines contenido)
+
+                return (map lineaAHabitacion lineas)
+            else
+                return []
+
+    -- Cargar tarifas
+    tarifasIniciales <- T.cargarTarifas "tarifas.txt"
+
+    -- Construir el estado inicial del sistema
+    let sistemaInicial = estadoInicial
+            { estadoTipos = tiposIniciales
+            , estadoHab = habitacionesIniciales
+            , estadoTarifas = tarifasIniciales
+            }
+
+    putStrLn "\nResumen de carga:"
+    putStrLn ("Tipos de habitacion: " ++ show (length tiposIniciales))
+    putStrLn ("Habitaciones: " ++ show (length habitacionesIniciales))
+    putStrLn ("Tarifas: " ++ show (length tarifasIniciales))
+
+    _ <- menuAdministrativo sistemaInicial
+
+    putStrLn "Programa finalizado."

@@ -10,23 +10,28 @@ import Estadisticas
 habitacion1 :: Habitacion
 habitacion1 =
     Habitacion
-        101
-        "Estandar"
+        "101"
+        (TipoHabitacion
+            "Estandar"
+            "Habitacion estandar con cama doble"
+            2)
 
 
 -- Creamos una reservacion de prueba
 reserva1 :: Reserva
 reserva1 =
     Reserva
-        1                   -- Codigo de reserva
-        "Diego"             -- Nombre del cliente
-        "10/10/2026"        -- Fecha de entrada
-        "12/10/2026"        -- Fecha de salida
-        2                   -- Adultos
-        1                   -- Niños
-        [habitacion1]       -- Habitaciones
-        Activa              -- Estado
-        100000              -- Subtotal
+        { idReserva = 1
+        , nombreCliente = "Diego"
+        , fechaReserva = "2026-10-09 12:00:00"
+        , fechaEntrada = "2026-10-10"
+        , fechaSalida = "2026-10-12"
+        , totalAdultos = 2
+        , totalNinos = 1
+        , ocupaciones = [OcupacionHab habitacion1 2 1]
+        , estadoReserva = Activa
+        , subtotalReserva = 100000
+        }
 
 
 -- Lista que simula las reservaciones existentes
