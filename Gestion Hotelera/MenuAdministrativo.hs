@@ -306,17 +306,24 @@ main = do
     -- Cargar tarifas
     tarifasIniciales <- T.cargarTarifas "tarifas.txt"
 
+    -- Cargar reservaciones
+    reservasIniciales <- R.cargarReservaciones "reservaciones.txt"
+
     -- Construir el estado inicial del sistema
     let sistemaInicial = estadoInicial
             { estadoTipos = tiposIniciales
             , estadoHab = habitacionesIniciales
             , estadoTarifas = tarifasIniciales
+            , estadoReservas = reservasIniciales
+            , nextIdReserva =
+                1 + maximum (0 : map idReserva reservasIniciales)
             }
 
     putStrLn "\nResumen de carga:"
     putStrLn ("Tipos de habitacion: " ++ show (length tiposIniciales))
     putStrLn ("Habitaciones: " ++ show (length habitacionesIniciales))
     putStrLn ("Tarifas: " ++ show (length tarifasIniciales))
+    putStrLn ("Reservaciones: " ++ show (length reservasIniciales))
 
     _ <- menuAdministrativo sistemaInicial
 

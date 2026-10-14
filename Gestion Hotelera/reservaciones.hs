@@ -5,8 +5,10 @@ import Modelos
 import Tarifas (buscarTarifa)
 import Data.Time
     ( Day, DayOfWeek(..), defaultTimeLocale, parseTimeM
-    , formatTime, getCurrentTime, addDays, dayOfWeek, toGregorian
+    , formatTime, getCurrentTime, getZonedTime, localDay
+    , zonedTimeToLocalTime, addDays, dayOfWeek, toGregorian
     )
+import System.Directory (doesFileExist)
 import Text.Read (readMaybe)
 import Data.List (find)
 
@@ -23,9 +25,54 @@ textoValido texto =
 leerEntero :: String -> Maybe Int
 leerEntero texto = readMaybe texto
 
-validarFechas :: Day -> Day -> Bool
-validarFechas entrada salida =
-    entrada < salida
+validarFechas :: Day -> Day -> Day -> Bool
+validarFechas hoy entrada salida =
+    entrada >= hoy && entrada < salida
+
+pedirRangoFechas :: IO (Day, Day, String, String)
+pedirRangoFechas = do
+    putStr "Fecha de entrada (AAAA-MM-DD): "
+    entradaTexto <- getLine
+
+    putStr "Fecha de salida (AAAA-MM-DD): "
+    salidaTexto <- getLine
+
+    case (leerFecha entradaTexto, leerFecha salidaTexto) of
+        (Just entrada, Just salida) -> do
+            ahora <- getZonedTime
+            let hoy = localDay (zonedTimeToLocalTime ahora)
+
+            if entrada < hoy
+                then do
+                    putStrLn "La fecha de entrada no puede ser anterior a hoy."
+                    pedirRangoFechas
+                else if not (validarFechas hoy entrada salida)
+                    then do
+                        putStrLn "La salida debe ser posterior a la entrada."
+                        pedirRangoFechas
+                    else
+                        return (entrada, salida, entradaTexto, salidaTexto)
+
+        _ -> do
+            putStrLn "Fecha invalida. Use una fecha real con formato AAAA-MM-DD."
+            pedirRangoFechas
+
+cargarReservaciones :: FilePath -> IO [Reserva]
+cargarReservaciones ruta = do
+    existe <- doesFileExist ruta
+    if not existe
+        then return []
+        else do
+            contenido <- readFile ruta
+            let lineas = filter (not . null) (lines contenido)
+            case traverse readMaybe lineas of
+                Just reservas -> return reservas
+                Nothing -> ioError (userError
+                    ("El archivo de reservaciones contiene datos invalidos: " ++ ruta))
+
+guardarReservaciones :: FilePath -> [Reserva] -> IO ()
+guardarReservaciones ruta reservas =
+    writeFile ruta (unlines (map show reservas))
 
 seCruzan :: Day -> Day -> Day -> Day -> Bool
 seCruzan entrada1 salida1 entrada2 salida2 =
@@ -88,27 +135,13 @@ obtenerHabitacionesDisponibles sistema entrada salida =
 consultarDisponibilidad :: EstadoSistema -> IO ()
 consultarDisponibilidad sistema = do
     putStrLn "\n=== CONSULTAR DISPONIBILIDAD ==="
+    (entrada, salida, _, _) <- pedirRangoFechas
+    let disponibles =
+            obtenerHabitacionesDisponibles sistema entrada salida
 
-    putStr "Fecha de entrada (AAAA-MM-DD): "
-    entradaTexto <- getLine
-
-    putStr "Fecha de salida (AAAA-MM-DD): "
-    salidaTexto <- getLine
-
-    case (leerFecha entradaTexto, leerFecha salidaTexto) of
-        (Just entrada, Just salida) ->
-            if validarFechas entrada salida
-                then do
-                    let disponibles =
-                            obtenerHabitacionesDisponibles sistema entrada salida
-
-                    if null disponibles
-                        then putStrLn "No hay habitaciones disponibles."
-                        else mostrarHabitaciones disponibles
-                else
-                    putStrLn "La salida debe ser posterior a la entrada."
-
-        _ -> putStrLn "Formato de fecha incorrecto."
+    if null disponibles
+        then putStrLn "No hay habitaciones disponibles."
+        else mostrarHabitaciones disponibles
 
 mostrarHabitaciones :: [Habitacion] -> IO ()
 mostrarHabitaciones [] =
@@ -250,25 +283,9 @@ registrarReservacion sistema = do
             putStrLn "El nombre no puede estar vacio."
             return sistema
         else do
-            putStr "Fecha de entrada (AAAA-MM-DD): "
-            entradaTexto <- getLine
-
-            putStr "Fecha de salida (AAAA-MM-DD): "
-            salidaTexto <- getLine
-
-            case (leerFecha entradaTexto, leerFecha salidaTexto) of
-                (Just entrada, Just salida) ->
-                    if not (validarFechas entrada salida)
-                        then do
-                            putStrLn "La salida debe ser posterior a la entrada."
-                            return sistema
-                        else continuarRegistro
-                            sistema nombre entrada salida
-                            entradaTexto salidaTexto
-
-                _ -> do
-                    putStrLn "Una de las fechas no tiene el formato correcto."
-                    return sistema
+            (entrada, salida, entradaTexto, salidaTexto) <- pedirRangoFechas
+            continuarRegistro
+                sistema nombre entrada salida entradaTexto salidaTexto
 
 continuarRegistro ::
     EstadoSistema -> String -> Day -> Day -> String -> String
@@ -332,6 +349,10 @@ continuarRegistro sistema nombre entrada salida entradaTexto salidaTexto = do
                                             estadoReservas sistema ++ [nuevaReserva]
                                         , nextIdReserva = nextIdReserva sistema + 1
                                         }
+
+                                guardarReservaciones
+                                    "reservaciones.txt"
+                                    (estadoReservas sistemaActualizado)
 
                                 putStrLn "\nReserva registrada correctamente."
                                 mostrarComprobante nuevaReserva
@@ -409,6 +430,10 @@ cancelarReservacion sistema = do
 
                             let sistemaActualizado = sistema
                                     { estadoReservas = reservasActualizadas }
+
+                            guardarReservaciones
+                                "reservaciones.txt"
+                                reservasActualizadas
 
                             putStrLn "Reservacion cancelada correctamente."
                             return sistemaActualizado

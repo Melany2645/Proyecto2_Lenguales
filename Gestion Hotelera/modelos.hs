@@ -6,7 +6,7 @@ module Modelos where
 
 -- | Estados que puede tener una reservación
 data Estado = Activa | Facturada | Cancelada
-    deriving (Show, Eq)
+    deriving (Show, Read, Eq)
 
 
 -- ============================================
@@ -33,7 +33,7 @@ data TipoHabitacion = TipoHabitacion
     { nombreTH     :: String   -- Nombre único del tipo
     , descripcion  :: String   -- Descripción del tipo
     , maxHuespedes :: Int      -- Máximo de huéspedes permitidos
-    } deriving (Show, Eq)
+    } deriving (Show, Read, Eq)
 
 
 -- ============================================
@@ -44,7 +44,7 @@ data TipoHabitacion = TipoHabitacion
 data Habitacion = Habitacion
     { idHabitacion   :: String          -- Identificador (ej: "H001")
     , tipoHabitacion :: TipoHabitacion  -- Tipo al que pertenece
-    } deriving (Show, Eq)
+    } deriving (Show, Read, Eq)
 
 
 -- ============================================
@@ -67,7 +67,7 @@ data OcupacionHab = OcupacionHab
     { habitacionOcupada :: Habitacion  -- La habitación específica
     , adultosHab        :: Int         -- Adultos en esta habitación
     , ninosHab          :: Int         -- Niños en esta habitación
-    } deriving (Show, Eq)
+    } deriving (Show, Read, Eq)
 
 
 -- ============================================
@@ -86,7 +86,7 @@ data Reserva = Reserva
     , ocupaciones      :: [OcupacionHab]   -- Detalle por habitación
     , estadoReserva    :: Estado           -- Activa, Facturada o Cancelada
     , subtotalReserva  :: Double           -- Precio antes del impuesto
-    } deriving (Show, Eq)
+    } deriving (Show, Read, Eq)
 
 
 -- ============================================
