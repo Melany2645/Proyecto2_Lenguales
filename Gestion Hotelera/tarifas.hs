@@ -1,4 +1,3 @@
-
 module Tarifas where
 
 import Modelos
@@ -8,7 +7,7 @@ import Text.Read (readMaybe)
 import Data.Maybe (mapMaybe)
 
 -- ============================================
--- 1. CONVERTIR LINEAS A TARIFAS
+-- 1. CONVERTIR LÍNEAS A TARIFAS (Parsing)
 -- ============================================
 
 separarPorComas :: String -> [String]
@@ -31,8 +30,7 @@ crearTarifaDesdeLinea linea =
         _ -> Nothing
 
 parsearTarifas :: [String] -> [Tarifa]
-parsearTarifas lineas =
-    mapMaybe crearTarifaDesdeLinea lineas
+parsearTarifas lineas = mapMaybe crearTarifaDesdeLinea lineas
 
 -- ============================================
 -- 2. LEER TARIFAS DESDE EL ARCHIVO
@@ -41,41 +39,63 @@ parsearTarifas lineas =
 leerArchivoTarifas :: FilePath -> IO [String]
 leerArchivoTarifas ruta = do
     handle <- openFile ruta ReadMode
-    hSetEncoding handle latin1
+    hSetEncoding handle latin1  -- Evita errores de decodificación en Windows/WSL
     contenido <- hGetContents handle
     let lineas = lines contenido
     length lineas `seq` hClose handle
     return lineas
 
-cargarTarifas :: FilePath -> IO [Tarifa]
-cargarTarifas ruta = do
-    existe <- doesFileExist ruta
-
-    if existe
-        then do
-            lineas <- leerArchivoTarifas ruta
-            return (parsearTarifas lineas)
-        else
-            return []
+cargarTarifasDesdeArchivo :: FilePath -> IO [Tarifa]
+cargarTarifasDesdeArchivo ruta = do
+    lineas <- leerArchivoTarifas ruta
+    return (parsearTarifas lineas)
 
 -- ============================================
--- 3. GUARDAR TARIFAS EN EL ARCHIVO
+-- 3. GUARDAR TARIFAS EN EL ARCHIVO (Persistencia)
 -- ============================================
 
 tarifaALinea :: Tarifa -> String
 tarifaALinea tarifa =
     show (codigoTarifa tarifa) ++ "," ++ show (montoTarifa tarifa)
 
-guardarTarifas :: [Tarifa] -> FilePath -> IO ()
-guardarTarifas tarifas ruta = do
+guardarTarifasEnArchivo :: [Tarifa] -> FilePath -> IO ()
+guardarTarifasEnArchivo tarifas ruta = do
     handle <- openFile ruta WriteMode
     hSetEncoding handle latin1
     hPutStr handle (unlines (map tarifaALinea tarifas))
     hClose handle
-    putStrLn "[OK] Tarifas guardadas correctamente."
+    putStrLn ("[OK] Tarifas guardadas persistentemente en: " ++ ruta)
 
 -- ============================================
--- 4. BUSCAR UNA TARIFA POR SU CODIGO
+-- 4. FUNCIÓN PRINCIPAL DE CARGA (Reemplazo total)
+-- ============================================
+
+-- | Carga las tarifas desde un archivo, REEMPLAZA las anteriores y guarda en persistencia
+procesarCargaTarifas :: FilePath -> IO [Tarifa]
+procesarCargaTarifas ruta = do
+    existe <- doesFileExist ruta
+    
+    if not existe
+        then do
+            putStrLn "\n[ERROR] El archivo no existe. Verifique la ruta."
+            return []
+        else do
+            tarifasNuevas <- cargarTarifasDesdeArchivo ruta
+            
+            -- Validación: el PDF pide exactamente 8 tarifas
+            if length tarifasNuevas == 8
+                then putStrLn "\n[OK] Se cargaron las 8 tarifas correctamente."
+                else do
+                    putStrLn "\n[AVISO] El archivo no contiene exactamente 8 tarifas válidas."
+                    putStrLn ("[INFO] Se cargaron " ++ show (length tarifasNuevas) ++ " tarifas.")
+            
+            -- REEMPLAZO TOTAL: Guardamos las nuevas en el archivo de persistencia
+            guardarTarifasEnArchivo tarifasNuevas "tarifas_persistencia.txt"
+            
+            return tarifasNuevas
+
+-- ============================================
+-- 5. BUSCAR UNA TARIFA POR SU CÓDIGO (Útil para Reservaciones)
 -- ============================================
 
 buscarTarifa :: Int -> [Tarifa] -> Maybe Tarifa
@@ -89,45 +109,42 @@ obtenerMontoTarifa :: Int -> [Tarifa] -> Double
 obtenerMontoTarifa codigo tarifas =
     case buscarTarifa codigo tarifas of
         Just tarifa -> montoTarifa tarifa
-        Nothing -> 0
+        Nothing -> 0.0
 
 -- ============================================
--- 5. MOSTRAR LAS TARIFAS
+-- 6. MOSTRAR LAS TARIFAS
 -- ============================================
 
 mostrarTarifas :: [Tarifa] -> IO ()
-mostrarTarifas [] =
-    putStrLn "[AVISO] No hay tarifas cargadas."
-
+mostrarTarifas [] = putStrLn "[AVISO] No hay tarifas cargadas."
 mostrarTarifas tarifas = do
     putStrLn "\n========== TARIFAS DEL HOTEL =========="
     mapM_ mostrarUnaTarifa tarifas
+    putStrLn "========================================"
 
 mostrarUnaTarifa :: Tarifa -> IO ()
 mostrarUnaTarifa tarifa = do
-    putStrLn
-        ("Codigo: " ++ show (codigoTarifa tarifa)
-        ++ " | Monto: " ++ show (montoTarifa tarifa))
+    putStrLn ("  Código: " ++ show (codigoTarifa tarifa) 
+           ++ " | Monto: ₡" ++ show (montoTarifa tarifa))
 
 -- ============================================
--- 6. REGISTRAR O ACTUALIZAR UNA TARIFA
+-- 7. REGISTRAR O ACTUALIZAR UNA TARIFA MANUALMENTE (Bonus)
 -- ============================================
 
-registrarTarifa :: [Tarifa] -> IO [Tarifa]
-registrarTarifa tarifas = do
-    putStrLn "\n========== REGISTRAR TARIFA =========="
-    putStrLn "Ingrese un codigo del 1 al 8:"
+registrarTarifaManual :: [Tarifa] -> IO [Tarifa]
+registrarTarifaManual tarifas = do
+    putStrLn "\n========== REGISTRAR TARIFA MANUAL =========="
+    putStrLn "Ingrese un código del 1 al 8:"
     codigoTexto <- getLine
 
     case readMaybe codigoTexto of
         Nothing -> do
-            putStrLn "[ERROR] Debe ingresar un numero entero."
+            putStrLn "[ERROR] Debe ingresar un número entero."
             return tarifas
-
         Just codigo ->
             if codigo < 1 || codigo > 8
                 then do
-                    putStrLn "[ERROR] El codigo debe estar entre 1 y 8."
+                    putStrLn "[ERROR] El código debe estar entre 1 y 8."
                     return tarifas
                 else do
                     putStrLn "Ingrese el monto de la tarifa:"
@@ -135,9 +152,8 @@ registrarTarifa tarifas = do
 
                     case readMaybe montoTexto of
                         Nothing -> do
-                            putStrLn "[ERROR] El monto no es valido."
+                            putStrLn "[ERROR] El monto no es válido."
                             return tarifas
-
                         Just monto ->
                             if monto <= 0
                                 then do
@@ -145,13 +161,10 @@ registrarTarifa tarifas = do
                                     return tarifas
                                 else do
                                     let nuevaTarifa = Tarifa codigo monto
-                                    let otrasTarifas =
-                                            filter
-                                                (\t -> codigoTarifa t /= codigo)
-                                                tarifas
-                                    let tarifasActualizadas =
-                                            otrasTarifas ++ [nuevaTarifa]
-
-                                    guardarTarifas tarifasActualizadas "tarifas.txt"
-                                    putStrLn "[OK] Tarifa registrada."
+                                    -- Reemplaza la tarifa si ya existía, o la agrega
+                                    let otrasTarifas = filter (\t -> codigoTarifa t /= codigo) tarifas
+                                    let tarifasActualizadas = otrasTarifas ++ [nuevaTarifa]
+                                    
+                                    guardarTarifasEnArchivo tarifasActualizadas "tarifas_persistencia.txt"
+                                    putStrLn "[OK] Tarifa registrada y guardada."
                                     return tarifasActualizadas

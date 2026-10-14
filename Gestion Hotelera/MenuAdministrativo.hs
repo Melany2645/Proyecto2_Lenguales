@@ -1,4 +1,3 @@
-
 module MenuAdministrativo where
 
 import Modelos
@@ -6,12 +5,13 @@ import HotelInformacion hiding (pausar)
 import TiposHabitacion
 import CantDeHabitaciones
 import System.Directory (doesFileExist)
+import Data.List (find)
+import Text.Read (readMaybe)
 
-import qualified Tarifas as T
 import qualified Reservaciones as R
 
 -- ============================================
--- FUNCIONES AUXILIARES
+-- FUNCIONES AUXILIARES LOCALES
 -- ============================================
 
 limpiarPantalla :: IO ()
@@ -22,6 +22,25 @@ pausar = do
     putStrLn "\nPresione ENTER para continuar..."
     _ <- getLine
     return ()
+
+separarPorComasLocal :: String -> [String]
+separarPorComasLocal [] = []
+separarPorComasLocal texto =
+    case break (== ',') texto of
+        (parte, []) -> [parte]
+        (parte, _:resto) -> parte : separarPorComasLocal resto
+
+parsearLineaTarifa :: String -> Tarifa
+parsearLineaTarifa linea =
+    let partes = separarPorComasLocal linea
+    in Tarifa (read (head partes) :: Int) (read (last partes) :: Double)
+
+leerEntero :: String -> Maybe Int
+leerEntero texto = readMaybe texto
+
+-- ============================================
+-- MENÚ PRINCIPAL
+-- ============================================
 
 mostrarMenu :: IO String
 mostrarMenu = do
@@ -35,7 +54,7 @@ mostrarMenu = do
     putStrLn "3. Asignar habitaciones por tipo"
     putStrLn "4. Ver habitaciones"
     putStrLn "5. Carga de tarifas"
-    putStrLn "6. Consultar reservaciones"
+    putStrLn "6. Gestion de reservaciones"
     putStrLn "7. Consultar disponibilidad"
     putStrLn "8. Estadisticas de ocupacion"
     putStrLn "9. Salir"
@@ -60,26 +79,10 @@ opcionInfoHotel infoActual = do
     opcion <- getLine
 
     case opcion of
-        "1" -> do
-            nuevaInfo <- cargarInfoHotel infoActual
-            pausar
-            return nuevaInfo
-
-        "2" -> do
-            mostrarInfoHotel infoActual
-            pausar
-            return infoActual
-
-        "3" -> do
-            guardarInfoHotel infoActual "hotel_info.txt"
-            pausar
-            return infoActual
-
-        "4" -> do
-            infoLeida <- leerInfoHotel infoActual "hotel_info.txt"
-            pausar
-            return infoLeida
-
+        "1" -> do nuevaInfo <- cargarInfoHotel infoActual; pausar; return nuevaInfo
+        "2" -> do mostrarInfoHotel infoActual; pausar; return infoActual
+        "3" -> do guardarInfoHotel infoActual "hotel_info.txt"; pausar; return infoActual
+        "4" -> do infoLeida <- leerInfoHotel infoActual "hotel_info.txt"; pausar; return infoLeida
         _ -> return infoActual
 
 -- ============================================
@@ -90,9 +93,7 @@ opcionCargarTipos :: [TipoHabitacion] -> IO [TipoHabitacion]
 opcionCargarTipos tiposActuales = do
     limpiarPantalla
     putStrLn "=== CARGAR TIPOS DE HABITACION ==="
-
     mostrarTipos tiposActuales
-
     putStr "\nRuta del archivo de tipos: "
     ruta <- getLine
 
@@ -110,9 +111,7 @@ opcionCargarTipos tiposActuales = do
 -- OPCION 3: ASIGNAR HABITACIONES
 -- ============================================
 
-opcionAsignarHabitaciones ::
-    [Habitacion] -> [TipoHabitacion] -> IO [Habitacion]
-
+opcionAsignarHabitaciones :: [Habitacion] -> [TipoHabitacion] -> IO [Habitacion]
 opcionAsignarHabitaciones habitaciones tipos = do
     limpiarPantalla
     putStrLn "=== ASIGNAR HABITACIONES ==="
@@ -136,82 +135,160 @@ opcionVerHabitaciones habitaciones = do
 -- ============================================
 
 opcionCargarTarifas :: [Tarifa] -> IO [Tarifa]
-opcionCargarTarifas tarifasActuales = do
+opcionCargarTarifas _ = do
     limpiarPantalla
     putStrLn "=== CARGA DE TARIFAS ==="
-
-    T.mostrarTarifas tarifasActuales
-
-    putStrLn "\n1. Registrar o actualizar tarifa"
-    putStrLn "2. Volver"
-    putStr "Seleccione una opcion: "
-    opcion <- getLine
-
-    case opcion of
-        "1" -> do
-            tarifasNuevas <- T.registrarTarifa tarifasActuales
+    putStrLn "Las tarifas existentes seran reemplazadas por las del archivo."
+    putStr "\nIngrese la ruta del archivo (ej: tarifas.txt): "
+    ruta <- getLine
+    
+    if null ruta || all (== ' ') ruta
+        then do
+            putStrLn "[ERROR] La ruta no puede estar vacia."
             pausar
-            return tarifasNuevas
-
-        _ -> return tarifasActuales
+            return []
+        else do
+            existe <- doesFileExist ruta
+            if not existe
+                then do
+                    putStrLn "[ERROR] El archivo no existe."
+                    pausar
+                    return []
+                else do
+                    contenido <- readFile ruta
+                    let lineas = filter (not . null) (lines contenido)
+                    let nuevasTarifas = map parsearLineaTarifa lineas
+                    putStrLn ("[OK] Se cargaron " ++ show (length nuevasTarifas) ++ " tarifas.")
+                    writeFile "tarifas_persistencia.txt" (unlines (map (\t -> show (codigoTarifa t) ++ "," ++ show (montoTarifa t)) nuevasTarifas))
+                    putStrLn "[OK] Tarifas guardadas en persistencia."
+                    pausar
+                    return nuevasTarifas
 
 -- ============================================
--- OPCION 6: RESERVACIONES
+-- OPCION 6: SUBMENU DE RESERVACIONES (Solo 1 y 2)
 -- ============================================
 
-opcionConsultarReservas :: EstadoSistema -> IO EstadoSistema
-opcionConsultarReservas sistema = do
+opcionGestionReservas :: EstadoSistema -> IO EstadoSistema
+opcionGestionReservas sistema = do
     limpiarPantalla
     putStrLn "=== GESTION DE RESERVACIONES ==="
-
-    putStrLn "\n1. Consultar todas las reservaciones"
-    putStrLn "2. Registrar reservacion"
-    putStrLn "3. Cancelar reservacion"
-    putStrLn "4. Volver"
-    putStr "Seleccione una opcion: "
+    putStrLn "\n1. Consultar historial de reservaciones"
+    putStrLn "2. Volver al menu administrativo"
+    putStr "\nSeleccione una opcion: "
     opcion <- getLine
 
     case opcion of
         "1" -> do
+            limpiarPantalla
             R.consultarReservaciones (estadoReservas sistema)
             pausar
-            return sistema
-
-        "2" -> do
-            sistemaNuevo <- R.registrarReservacion sistema
+            opcionGestionReservas sistema
+        
+        "2" -> return sistema
+        
+        _ -> do
+            putStrLn "Opcion no valida."
             pausar
-            return sistemaNuevo
-
-        "3" -> do
-            sistemaNuevo <- R.cancelarReservacion sistema
-            pausar
-            return sistemaNuevo
-
-        _ -> return sistema
+            opcionGestionReservas sistema
 
 -- ============================================
--- OPCION 7: DISPONIBILIDAD
+-- OPCION 7: CONSULTAR DISPONIBILIDAD POR FECHA
 -- ============================================
 
-opcionConsultarOcupacion :: EstadoSistema -> IO ()
-opcionConsultarOcupacion sistema = do
+opcionConsultarDisponibilidad :: EstadoSistema -> IO EstadoSistema
+opcionConsultarDisponibilidad sistema = do
     limpiarPantalla
-    R.consultarDisponibilidad sistema
-    pausar
+    putStrLn "=== CONSULTAR DISPONIBILIDAD ===\n"
+    
+    if null (estadoHab sistema)
+        then do
+            putStrLn "[AVISO] No hay habitaciones en el sistema."
+            pausar
+            return sistema
+        else do
+            putStr "Ingrese una fecha para consultar (AAAA-MM-DD): "
+            fechaTexto <- getLine
+            
+            if not (validarFormatoFecha fechaTexto)
+                then do
+                    putStrLn "[ERROR] Formato de fecha invalido. Use AAAA-MM-DD"
+                    pausar
+                    return sistema
+                else do
+                    putStrLn ""
+                    putStrLn ("--- Habitaciones OCUPADAS en " ++ fechaTexto ++ " ---")
+                    let listaOcupadas = habitacionesOcupadasEnFecha sistema fechaTexto
+                    if null listaOcupadas
+                        then putStrLn "  (Ninguna)"
+                        else mapM_ mostrarHabitacionOcupada listaOcupadas
+                    putStrLn ""
+                    putStrLn ("--- Habitaciones DISPONIBLES en " ++ fechaTexto ++ " ---")
+                    let listaDisponibles = habitacionesDisponiblesEnFecha sistema fechaTexto
+                    if null listaDisponibles
+                        then putStrLn "  (Ninguna)"
+                        else mapM_ mostrarHabitacionDisponible listaDisponibles
+                    pausar
+                    return sistema
+
+-- | Valida el formato AAAA-MM-DD
+validarFormatoFecha :: String -> Bool
+validarFormatoFecha fecha =
+    length fecha == 10 &&
+    fecha !! 4 == '-' &&
+    fecha !! 7 == '-' &&
+    all (`elem` "0123456789") (take 4 fecha) &&
+    all (`elem` "0123456789") (take 2 (drop 5 fecha)) &&
+    all (`elem` "0123456789") (drop 8 fecha)
+
+-- | Verifica si una fecha está dentro del rango de una reserva
+fechaDentroDeReserva :: String -> String -> String -> Bool
+fechaDentroDeReserva fecha entrada salida =
+    fecha >= entrada && fecha < salida
+
+-- | Obtiene las habitaciones ocupadas en una fecha específica
+habitacionesOcupadasEnFecha :: EstadoSistema -> String -> [(Habitacion, Int)]
+habitacionesOcupadasEnFecha sistema fecha =
+    let reservasActivas = filter (\r -> estadoReserva r == Activa && 
+                                        fechaDentroDeReserva fecha (fechaEntrada r) (fechaSalida r))
+                                 (estadoReservas sistema)
+        listaOcupaciones = concatMap (\r -> map (\oc -> (habitacionOcupada oc, idReserva r)) (Modelos.ocupaciones r)) reservasActivas
+    in listaOcupaciones
+
+-- | Obtiene las habitaciones disponibles en una fecha específica
+habitacionesDisponiblesEnFecha :: EstadoSistema -> String -> [Habitacion]
+habitacionesDisponiblesEnFecha sistema fecha =
+    let ocupadas = map fst (habitacionesOcupadasEnFecha sistema fecha)
+        idsOcupadas = map idHabitacion ocupadas
+    in filter (\h -> idHabitacion h `notElem` idsOcupadas) (estadoHab sistema)
+
+-- | Muestra una habitación ocupada con su código de reserva
+mostrarHabitacionOcupada :: (Habitacion, Int) -> IO ()
+mostrarHabitacionOcupada (hab, idReserva) = do
+    putStrLn ("  " ++ idHabitacion hab 
+           ++ " - " ++ nombreTH (tipoHabitacion hab)
+           ++ " | Reservada en reserva #" ++ show idReserva)
+
+-- | Muestra una habitación disponible
+mostrarHabitacionDisponible :: Habitacion -> IO ()
+mostrarHabitacionDisponible hab = do
+    putStrLn ("  " ++ idHabitacion hab 
+           ++ " - " ++ nombreTH (tipoHabitacion hab)
+           ++ " (Capacidad: " ++ show (maxHuespedes (tipoHabitacion hab)) ++ ")")
 
 -- ============================================
--- OPCION 8: ESTADISTICAS
+-- OPCION 8: ESTADISTICAS (Persona 3 - Pendiente)
 -- ============================================
 
-opcionEstadisticas :: IO ()
-opcionEstadisticas = do
+opcionEstadisticas :: EstadoSistema -> IO EstadoSistema
+opcionEstadisticas sistema = do
     limpiarPantalla
     putStrLn "=== ESTADISTICAS DE OCUPACION ==="
-    putStrLn "Esta opcion esta pendiente de integracion."
+    putStrLn "[EN DESARROLLO - Persona 3]"
     pausar
+    return sistema
 
 -- ============================================
--- MENU PRINCIPAL
+-- MENU PRINCIPAL (Loop recursivo)
 -- ============================================
 
 menuAdministrativo :: EstadoSistema -> IO EstadoSistema
@@ -230,11 +307,7 @@ menuAdministrativo sistema = do
             menuAdministrativo sistemaNuevo
 
         "3" -> do
-            nuevasHabitaciones <-
-                opcionAsignarHabitaciones
-                    (estadoHab sistema)
-                    (estadoTipos sistema)
-
+            nuevasHabitaciones <- opcionAsignarHabitaciones (estadoHab sistema) (estadoTipos sistema)
             let sistemaNuevo = sistema { estadoHab = nuevasHabitaciones }
             menuAdministrativo sistemaNuevo
 
@@ -248,16 +321,16 @@ menuAdministrativo sistema = do
             menuAdministrativo sistemaNuevo
 
         "6" -> do
-            sistemaNuevo <- opcionConsultarReservas sistema
+            sistemaNuevo <- opcionGestionReservas sistema
             menuAdministrativo sistemaNuevo
 
         "7" -> do
-            opcionConsultarOcupacion sistema
-            menuAdministrativo sistema
+            sistemaNuevo <- opcionConsultarDisponibilidad sistema
+            menuAdministrativo sistemaNuevo
 
         "8" -> do
-            opcionEstadisticas
-            menuAdministrativo sistema
+            sistemaNuevo <- opcionEstadisticas sistema
+            menuAdministrativo sistemaNuevo
 
         "9" -> do
             limpiarPantalla
@@ -270,60 +343,85 @@ menuAdministrativo sistema = do
             menuAdministrativo sistema
 
 -- ============================================
--- CARGA INICIAL
+-- MAIN
 -- ============================================
 
 main :: IO ()
 main = do
     putStrLn "Iniciando sistema de gestion hotelera..."
+    putStrLn ""
 
-    -- Cargar tipos de habitacion
+    -- 1. Cargar tipos
     existeTipos <- doesFileExist "tipos_persistencia.txt"
+    tiposIniciales <- if existeTipos
+        then do
+            putStrLn "[OK] Cargando tipos de habitación guardados..."
+            lineas <- leerArchivo "tipos_persistencia.txt"
+            let tipos = parsearLineas lineas
+            putStrLn ("[INFO] Se cargaron " ++ show (length tipos) ++ " tipos.")
+            return tipos
+        else do
+            putStrLn "[AVISO] No hay tipos guardados."
+            return []
 
-    tiposIniciales <-
-        if existeTipos
-            then do
-                lineas <- leerArchivo "tipos_persistencia.txt"
-                return (parsearLineas lineas)
-            else
-                return []
+    -- 2. Cargar habitaciones
+    existeHabitaciones <- doesFileExist "habitaciones_persistencia.txt"
+    habitacionesIniciales <- if existeHabitaciones
+        then do
+            putStrLn "[OK] Cargando habitaciones guardadas..."
+            contenido <- readFile "habitaciones_persistencia.txt"
+            let lineas = filter (not . null) (lines contenido)
+            let habs = map lineaAHabitacion lineas
+            putStrLn ("[INFO] Se cargaron " ++ show (length habs) ++ " habitaciones.")
+            return habs
+        else do
+            putStrLn "[AVISO] No hay habitaciones guardadas."
+            return []
 
-    -- Cargar habitaciones
-    existeHabitaciones <-
-        doesFileExist "habitaciones_persistencia.txt"
+    -- 3. Cargar tarifas
+    existeTarifas <- doesFileExist "tarifas_persistencia.txt"
+    tarifasIniciales <- if existeTarifas
+        then do
+            putStrLn "[OK] Cargando tarifas guardadas..."
+            contenido <- readFile "tarifas_persistencia.txt"
+            let lineas = filter (not . null) (lines contenido)
+            putStrLn ("[INFO] El archivo tiene " ++ show (length lineas) ++ " líneas.")
+            let tarifas = map parsearLineaTarifa lineas
+            putStrLn ("[INFO] Se parsearon " ++ show (length tarifas) ++ " tarifas válidas.")
+            return tarifas
+        else do
+            putStrLn "[AVISO] No hay tarifas guardadas."
+            return []
 
-    habitacionesIniciales <-
-        if existeHabitaciones
-            then do
-                contenido <- readFile "habitaciones_persistencia.txt"
-
-                let lineas = filter (not . null) (lines contenido)
-
-                return (map lineaAHabitacion lineas)
-            else
-                return []
-
-    -- Cargar tarifas
-    tarifasIniciales <- T.cargarTarifas "tarifas.txt"
-
-    -- Cargar reservaciones
+    -- 4. Cargar reservaciones
+    putStrLn "[OK] Cargando reservaciones..."
     reservasIniciales <- R.cargarReservaciones "reservaciones.txt"
+    putStrLn ("[INFO] Se cargaron " ++ show (length reservasIniciales) ++ " reservaciones.")
 
-    -- Construir el estado inicial del sistema
-    let sistemaInicial = estadoInicial
-            { estadoTipos = tiposIniciales
-            , estadoHab = habitacionesIniciales
-            , estadoTarifas = tarifasIniciales
+    -- 5. Construir estado inicial
+    let maxIdReserva = if null reservasIniciales
+                       then 0
+                       else maximum (map idReserva reservasIniciales)
+        sistemaInicial = estadoInicial
+            { estadoInfo     = Nothing
+            , estadoTipos    = tiposIniciales
+            , estadoHab      = habitacionesIniciales
+            , estadoTarifas  = tarifasIniciales
             , estadoReservas = reservasIniciales
-            , nextIdReserva =
-                1 + maximum (0 : map idReserva reservasIniciales)
+            , estadoFacturas = []
+            , nextIdReserva  = 1 + maxIdReserva
+            , nextIdFactura  = 1
             }
 
-    putStrLn "\nResumen de carga:"
-    putStrLn ("Tipos de habitacion: " ++ show (length tiposIniciales))
-    putStrLn ("Habitaciones: " ++ show (length habitacionesIniciales))
-    putStrLn ("Tarifas: " ++ show (length tarifasIniciales))
-    putStrLn ("Reservaciones: " ++ show (length reservasIniciales))
+    putStrLn ""
+    putStrLn "=================================================="
+    putStrLn " Resumen de carga inicial:"
+    putStrLn ("   - Tipos de habitacion: " ++ show (length tiposIniciales))
+    putStrLn ("   - Habitaciones: " ++ show (length habitacionesIniciales))
+    putStrLn ("   - Tarifas: " ++ show (length tarifasIniciales))
+    putStrLn ("   - Reservaciones: " ++ show (length reservasIniciales))
+    putStrLn "=================================================="
+    putStrLn ""
 
     _ <- menuAdministrativo sistemaInicial
 
