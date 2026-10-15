@@ -1,92 +1,165 @@
 module HotelInformacion where
 
 import Modelos
+import System.Directory (doesFileExist)
 import System.IO (hFlush, stdout)
+
 -- ============================================
--- FUNCIONES DEL MÓDULO
+-- ARCHIVO DE PERSISTENCIA
 -- ============================================
 
--- | Carga la información del hotel desde la entrada del usuario
+archivoHotel :: FilePath
+archivoHotel = "hotel_info.txt"
+
+
+-- ============================================
+-- GUARDAR INFORMACION DEL HOTEL
+-- ============================================
+
+guardarHotel :: HotelInfo -> IO ()
+guardarHotel info = do
+    writeFile archivoHotel (unlines
+        [ nombreEmpresa info
+        , cedulaJuridica info
+        , sitioWeb info
+        , telefono info
+        , pais info
+        , provincia info
+        ])
+    putStrLn "[OK] Informacion del hotel guardada."
+
+
+-- ============================================
+-- CARGAR INFORMACION AUTOMATICAMENTE
+-- ============================================
+
+cargarHotel :: IO (Maybe HotelInfo)
+cargarHotel = do
+    existe <- doesFileExist archivoHotel
+
+    if not existe
+        then return Nothing
+        else do
+            contenido <- readFile archivoHotel
+
+            case lines contenido of
+                [nombre, cedula, web, tel, paisHotel, prov] ->
+                    return (Just (HotelInfo
+                        nombre cedula web tel paisHotel prov))
+
+                _ -> do
+                    putStrLn "[ERROR] Archivo del hotel incorrecto."
+                    return Nothing
+
+
+-- ============================================
+-- SOLICITAR DATOS
+-- ============================================
+
+pedirDatoHotel :: String -> IO String
+pedirDatoHotel mensaje = do
+    putStr mensaje
+    hFlush stdout
+    getLine
+
+
+-- ============================================
+-- REGISTRAR HOTEL
+-- ============================================
+
+registrarHotel :: IO HotelInfo
+registrarHotel = do
+    putStrLn "\n=== REGISTRAR INFORMACION DEL HOTEL ==="
+
+    nombre <- pedirDatoHotel "Nombre de la empresa: "
+    cedula <- pedirDatoHotel "Cedula juridica: "
+    web <- pedirDatoHotel "Sitio web: "
+    tel <- pedirDatoHotel "Telefono: "
+    paisHotel <- pedirDatoHotel "Pais: "
+    prov <- pedirDatoHotel "Provincia: "
+
+    let info = HotelInfo nombre cedula web tel paisHotel prov
+
+    guardarHotel info
+    return info
+
+
+-- ============================================
+-- MOSTRAR HOTEL
+-- ============================================
+
+mostrarHotel :: HotelInfo -> IO ()
+mostrarHotel info = do
+    putStrLn "\n=== INFORMACION DEL HOTEL ==="
+    putStrLn ("Empresa: " ++ nombreEmpresa info)
+    putStrLn ("Cedula juridica: " ++ cedulaJuridica info)
+    putStrLn ("Sitio web: " ++ sitioWeb info)
+    putStrLn ("Telefono: " ++ telefono info)
+    putStrLn ("Pais: " ++ pais info)
+    putStrLn ("Provincia: " ++ provincia info)
+
+
+-- ============================================
+-- FUNCIONES DEL MENU ADMINISTRATIVO
+-- ============================================
+
+-- OPCION 1: REGISTRAR O MODIFICAR
+
 cargarInfoHotel :: Maybe HotelInfo -> IO (Maybe HotelInfo)
 cargarInfoHotel _ = do
-    putStrLn "--- Ingrese los datos del Hotel ---"
-    putStr "Nombre de la empresa: "
-    hFlush stdout
-    nombre <- getLine
-
-    putStr "Cedula juridica: "
-    hFlush stdout
-    cedula <- getLine
-
-    putStr "Sitio web: "
-    hFlush stdout
-    web <- getLine
-
-    putStr "Telefono: "
-    hFlush stdout
-    telefono <- getLine
-
-    putStr "Pais: "
-    hFlush stdout
-    pais <- getLine
-
-    putStr "Provincia: "
-    hFlush stdout
-    provincia <- getLine
-    let info = HotelInfo nombre cedula web telefono pais provincia
-    putStrLn "\n[OK] Informacion del hotel cargada."
+    info <- registrarHotel
     return (Just info)
 
--- | Muestra la información actual del hotel
+
+-- OPCION 2: MOSTRAR INFORMACION
+
 mostrarInfoHotel :: Maybe HotelInfo -> IO ()
-mostrarInfoHotel Nothing = 
-    putStrLn "[AVISO] No hay informacion del hotel."
-mostrarInfoHotel (Just info) = do
-    putStrLn "--- Datos del Hotel ---"
-    putStrLn ("Empresa: " ++ nombreEmpresa info)
-    putStrLn ("Cedula: " ++ cedulaJuridica info)
-    putStrLn ("Web: " ++ sitioWeb info)
-    putStrLn ("Telefono: " ++ telefono info)
-    putStrLn ("Ubicacion: " ++ pais info ++ ", " ++ provincia info)
+mostrarInfoHotel Nothing =
+    putStrLn "[ERROR] No hay informacion del hotel registrada."
 
--- | Guarda la información en un archivo de texto
+mostrarInfoHotel (Just info) =
+    mostrarHotel info
+
+
+-- OPCION 3: GUARDAR INFORMACION
+
 guardarInfoHotel :: Maybe HotelInfo -> FilePath -> IO ()
-guardarInfoHotel Nothing _ = 
-    putStrLn "[ERROR] No hay informacion para guardar."
+guardarInfoHotel Nothing _ =
+    putStrLn "[ERROR] No hay informacion del hotel para guardar."
+
 guardarInfoHotel (Just info) ruta = do
-    let linea1 = nombreEmpresa info
-    let linea2 = cedulaJuridica info
-    let linea3 = sitioWeb info
-    let linea4 = telefono info
-    let linea5 = pais info
-    let linea6 = provincia info
-    let contenido = unlines [linea1, linea2, linea3, linea4, linea5, linea6]
-    writeFile ruta contenido
-    putStrLn ("[OK] Guardado en: " ++ ruta)
+    writeFile ruta (unlines
+        [ nombreEmpresa info
+        , cedulaJuridica info
+        , sitioWeb info
+        , telefono info
+        , pais info
+        , provincia info
+        ])
+    putStrLn "[OK] Informacion del hotel guardada."
 
--- | Carga la información desde un archivo de texto
+
+-- OPCION 4: LEER INFORMACION DEL ARCHIVO
+
 leerInfoHotel :: Maybe HotelInfo -> FilePath -> IO (Maybe HotelInfo)
-leerInfoHotel _ ruta = do
-    contenido <- readFile ruta
-    let lineas = lines contenido
-    if length lineas >= 6
-        then do
-            let info = HotelInfo 
-                    (lineas !! 0) 
-                    (lineas !! 1) 
-                    (lineas !! 2)
-                    (lineas !! 3) 
-                    (lineas !! 4) 
-                    (lineas !! 5)
-            putStrLn "[OK] Leido desde archivo."
-            return (Just info)
-        else do
-            putStrLn "[ERROR] Archivo incompleto."
-            return Nothing
+leerInfoHotel infoActual ruta = do
+    existe <- doesFileExist ruta
 
--- | Pausa el programa esperando un Enter
-pausar :: IO ()
-pausar = do
-    putStrLn "\nPresione Enter para continuar..."
-    getLine
-    putStrLn ""
+    if not existe
+        then do
+            putStrLn "[ERROR] No existe el archivo del hotel."
+            return infoActual
+        else do
+            contenido <- readFile ruta
+
+            case lines contenido of
+                [nombre, cedula, web, tel, paisHotel, prov] -> do
+                    let info = HotelInfo
+                            nombre cedula web tel paisHotel prov
+
+                    putStrLn "[OK] Informacion del hotel cargada."
+                    return (Just info)
+
+                _ -> do
+                    putStrLn "[ERROR] Formato del archivo incorrecto."
+                    return infoActual

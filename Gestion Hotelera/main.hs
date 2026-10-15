@@ -1,3 +1,4 @@
+
 module Main where
 
 import Modelos
@@ -8,6 +9,7 @@ import qualified TiposHabitacion as T
 import qualified CantDeHabitaciones as H
 import qualified Reservaciones as R
 import qualified Facturacion as F
+import qualified HotelInformacion as HI
 
 import System.Directory (doesFileExist)
 import System.IO (hFlush, stdout)
@@ -25,6 +27,11 @@ import System.IO (hFlush, stdout)
 cargarSistema :: IO EstadoSistema
 cargarSistema = do
 
+    -- CARGAR INFORMACION DEL HOTEL
+
+    infoHotel <- HI.cargarHotel
+
+
     -- CARGAR TIPOS DE HABITACION
 
     existeTipos <- doesFileExist "tipos_persistencia.txt"
@@ -32,11 +39,8 @@ cargarSistema = do
     tipos <-
         if existeTipos
             then do
-
                 lineas <- T.leerArchivo "tipos_persistencia.txt"
-
                 return (T.parsearLineas lineas)
-
             else return []
 
 
@@ -48,7 +52,6 @@ cargarSistema = do
     habitaciones <-
         if existeHabitaciones
             then do
-
                 contenido <-
                     readFile "habitaciones_persistencia.txt"
 
@@ -68,7 +71,6 @@ cargarSistema = do
     tarifas <-
         if existeTarifas
             then do
-
                 contenido <-
                     readFile "tarifas_persistencia.txt"
 
@@ -89,14 +91,6 @@ cargarSistema = do
     -- CARGAR FACTURAS
 
     facturas <- F.cargarFacturas
-
-    -- CALCULAR SIGUIENTE NUMERO DE FACTURA
-    let siguienteFactura =
-            if null facturas
-                then 1
-                else maximum (map idFactura facturas) + 1
-
-    putStrLn ("Facturas cargadas: " ++ show (length facturas))
 
 
     -- CALCULAR SIGUIENTE NUMERO DE RESERVACION
@@ -123,6 +117,12 @@ cargarSistema = do
     putStrLn "========================================"
 
     putStrLn
+        ("Informacion del hotel: " ++
+            if infoHotel == Nothing
+                then "No registrada"
+                else "Cargada")
+
+    putStrLn
         ("Tipos de habitacion: " ++ show (length tipos))
 
     putStrLn
@@ -144,7 +144,9 @@ cargarSistema = do
 
     return estadoInicial
         {
-          estadoTipos = tipos
+          estadoInfo = infoHotel
+
+        , estadoTipos = tipos
 
         , estadoHab = habitaciones
 
@@ -191,25 +193,20 @@ menuPrincipal sistema = do
         -- OPCIONES GENERALES
 
         "1" -> do
-
             nuevoSistema <- G.menuGeneral sistema
-
             menuPrincipal nuevoSistema
 
 
         -- OPCIONES ADMINISTRATIVAS
 
         "2" -> do
-
             nuevoSistema <- A.menuAdministrativo sistema
-
             menuPrincipal nuevoSistema
 
 
         -- SALIR
 
         "3" -> do
-
             putStrLn ""
             putStrLn "Programa finalizado."
 
@@ -217,9 +214,7 @@ menuPrincipal sistema = do
         -- OPCION INVALIDA
 
         _ -> do
-
             putStrLn "[ERROR] Opcion no valida."
-
             menuPrincipal sistema
 
 

@@ -111,18 +111,54 @@ contarOcupacion numero reservas =
 -- S: tres dias con mayor ocupacion
 -- O: ordenar los dias segun la cantidad de ocupaciones
 
+
+-- F: topTresDias
+-- E: lista de reservaciones
+-- S: fechas con mayor ocupacion
+-- O: mostrar las 3 fechas con mayor ocupacion,
+--    incluyendo los empates del tercer puesto
+
 topTresDias :: [Reserva] -> [(String, Int)]
 topTresDias reservas =
-    take 3 (sortBy (flip (comparing snd)) datos)
-    where
-        nombres =
-            ["Lunes", "Martes", "Miercoles",
-             "Jueves", "Viernes", "Sabado", "Domingo"]
+    let fechas =
+            [ dia
+            | reserva <- reservas
+            , estadoReserva reserva /= Cancelada
+            , dia <- diasReserva reserva
+            ]
+
+        fechasUnicas =
+            quitarRepetidos fechas
 
         datos =
-            [ (nombre, contarOcupacion numero reservas)
-            | (numero, nombre) <- zip [1..7] nombres
+            [ (formatTime defaultTimeLocale "%Y-%m-%d" dia,
+               sum [ length (ocupaciones reserva)
+                   | reserva <- reservas
+                   , estadoReserva reserva /= Cancelada
+                   , dia `elem` diasReserva reserva
+                   ])
+            | dia <- fechasUnicas
             ]
+
+        ordenados =
+            sortBy (flip (comparing snd)) datos
+
+        -- Obtener las tres posiciones principales
+        primerosTres = take 3 ordenados
+
+    in if null primerosTres
+        then []
+        else
+            let limite = snd (last primerosTres)
+            in takeWhile (\(_, cantidad) -> cantidad >= limite) ordenados
+
+
+-- Elimina fechas repetidas
+quitarRepetidos :: Eq a => [a] -> [a]
+quitarRepetidos [] = []
+quitarRepetidos (x:xs) =
+    x : quitarRepetidos (filter (/= x) xs)
+
 
 
 -- ==========================================
@@ -176,11 +212,22 @@ validarFechaEst fecha =
 -- S: muestra los codigos
 -- O: mostrar las habitaciones sin mensajes adicionales
 
+-- F: mostrarHabitaciones
+-- E: lista de habitaciones
+-- S: informacion completa de las habitaciones
+-- O: mostrar codigo, tipo, descripcion y capacidad
+
 mostrarHabitaciones :: [Habitacion] -> IO ()
 mostrarHabitaciones [] = return ()
 
 mostrarHabitaciones (habitacion:resto) = do
-    putStrLn (idHabitacion habitacion)
+    putStrLn ("Habitacion: " ++ idHabitacion habitacion)
+    putStrLn ("Tipo: " ++ nombreTH (tipoHabitacion habitacion))
+    putStrLn ("Descripcion: " ++ descripcion (tipoHabitacion habitacion))
+    putStrLn ("Capacidad maxima: " ++
+        show (maxHuespedes (tipoHabitacion habitacion)) ++ " huespedes")
+    putStrLn "----------------------------------------"
+
     mostrarHabitaciones resto
 
 
@@ -337,6 +384,7 @@ menuEstadisticas sistema = do
 -- O: presentar los dias con mayor ocupacion
 
 mostrarDia :: (String, Int) -> IO ()
-mostrarDia (nombre, cantidad) =
+mostrarDia (fecha, cantidad) =
     putStrLn
-        (nombre ++ ": " ++ show cantidad ++ " ocupaciones")
+        ("Fecha: " ++ fecha ++
+         " | Habitaciones ocupadas: " ++ show cantidad)

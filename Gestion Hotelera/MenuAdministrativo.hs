@@ -34,7 +34,11 @@ separarPorComasLocal texto =
 parsearLineaTarifa :: String -> Tarifa
 parsearLineaTarifa linea =
     let partes = separarPorComasLocal linea
-    in Tarifa (read (head partes) :: Int) (read (last partes) :: Double)
+    in case partes of
+    [codigo, monto] ->
+        Tarifa (read codigo :: Int) (read monto :: Double)
+    _ ->
+        error "Formato incorrecto en tarifas_persistencia.txt"
 
 leerEntero :: String -> Maybe Int
 leerEntero texto = readMaybe texto
@@ -282,12 +286,15 @@ mostrarHabitacionOcupada (hab, idReserva) = do
            ++ " - " ++ nombreTH (tipoHabitacion hab)
            ++ " | Reservada en reserva #" ++ show idReserva)
 
--- | Muestra una habitación disponible
+-- | Muestra toda la informacion de una habitacion disponible
 mostrarHabitacionDisponible :: Habitacion -> IO ()
 mostrarHabitacionDisponible hab = do
-    putStrLn ("  " ++ idHabitacion hab 
-           ++ " - " ++ nombreTH (tipoHabitacion hab)
-           ++ " (Capacidad: " ++ show (maxHuespedes (tipoHabitacion hab)) ++ ")")
+    putStrLn ("Habitacion: " ++ idHabitacion hab)
+    putStrLn ("Tipo: " ++ nombreTH (tipoHabitacion hab))
+    putStrLn ("Descripcion: " ++ descripcion (tipoHabitacion hab))
+    putStrLn ("Capacidad maxima: " ++
+        show (maxHuespedes (tipoHabitacion hab)) ++ " huespedes")
+    putStrLn "----------------------------------------"
 
 -- ============================================
 -- OPCION 8: ESTADISTICAS

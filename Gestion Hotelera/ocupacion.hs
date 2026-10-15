@@ -94,7 +94,13 @@ verDisponibilidad habitaciones reservas = do
 
     if null libres
         then putStrLn "No hay habitaciones disponibles para esa fecha."
-        else mapM_ (\h -> putStrLn (idHabitacion h)) libres
+        else mapM_ (\h -> do
+            putStrLn ("Habitacion: " ++ idHabitacion h)
+            putStrLn ("Tipo: " ++ nombreTH (tipoHabitacion h))
+            putStrLn ("Descripcion: " ++ descripcion (tipoHabitacion h))
+            putStrLn ("Capacidad maxima: " ++ show (maxHuespedes (tipoHabitacion h)) ++ " huespedes")
+            putStrLn "----------------------------------------"
+            ) libres
 
 
 -- F: consultarOcupacion
@@ -115,13 +121,27 @@ consultarOcupacion habitaciones reservas = do
     putStrLn "Habitaciones ocupadas:"
     if null ocupadas
         then putStrLn "No hay habitaciones ocupadas."
-        else mapM_ (\h -> putStrLn (idHabitacion h)) ocupadas
+        else mapM_ (\h -> do
+            putStrLn ("Habitacion: " ++ idHabitacion h)
+            putStrLn ("Tipo: " ++ nombreTH (tipoHabitacion h))
+            putStrLn ("Descripcion: " ++ descripcion (tipoHabitacion h))
+            putStrLn ("Capacidad maxima: " ++
+                show (maxHuespedes (tipoHabitacion h)) ++ " huespedes")
+            putStrLn "----------------------------------------"
+            ) ocupadas
 
     putStrLn ""
     putStrLn "Habitaciones disponibles:"
     if null libres
         then putStrLn "No hay habitaciones disponibles."
-        else mapM_ (\h -> putStrLn (idHabitacion h)) libres
+        else mapM_ (\h -> do
+            putStrLn ("Habitacion: " ++ idHabitacion h)
+            putStrLn ("Tipo: " ++ nombreTH (tipoHabitacion h))
+            putStrLn ("Descripcion: " ++ descripcion (tipoHabitacion h))
+            putStrLn ("Capacidad maxima: " ++
+                show (maxHuespedes (tipoHabitacion h)) ++ " huespedes")
+            putStrLn "----------------------------------------"
+            ) libres
 
     putStrLn ""
     putStrLn ("Total ocupadas: " ++ show (length ocupadas))
