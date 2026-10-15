@@ -6,10 +6,12 @@ import System.IO (openFile, IOMode(ReadMode, WriteMode), hSetEncoding, latin1, h
 import Text.Read (readMaybe)
 import Data.Maybe (mapMaybe)
 
--- ============================================
--- 1. CONVERTIR LÍNEAS A TARIFAS (Parsing)
--- ============================================
 
+-- 1. convertir una línea de texto en una tarifa
+-- E: Una lista de líneas de texto, cada línea con formato "codigo,monto"
+-- S: Una lista de tarifas válidas, ignorando líneas inválidas
+-- R: Valores válidos
+-- F: Se encarga de separar la línea por comas, convertir a números y validar el rango de código y monto.
 separarPorComas :: String -> [String]
 separarPorComas [] = []
 separarPorComas texto =
@@ -17,6 +19,10 @@ separarPorComas texto =
         (parte, []) -> [parte]
         (parte, _:resto) -> parte : separarPorComas resto
 
+-- E: Una línea de texto con formato "codigo,monto"
+-- S: Maybe Tarifa, donde Just Tarifa si es válida, Nothing si no lo es
+-- R: Valores válidos
+-- F: Se encarga de separar la línea por comas, convertir a números y validar el rango de código y monto.
 crearTarifaDesdeLinea :: String -> Maybe Tarifa
 crearTarifaDesdeLinea linea =
     case separarPorComas linea of
@@ -32,10 +38,14 @@ crearTarifaDesdeLinea linea =
 parsearTarifas :: [String] -> [Tarifa]
 parsearTarifas lineas = mapMaybe crearTarifaDesdeLinea lineas
 
--- ============================================
--- 2. LEER TARIFAS DESDE EL ARCHIVO
--- ============================================
 
+-- 2. LEER TARIFAS DESDE EL ARCHIVO
+
+
+-- E: Una ruta de archivo
+-- S: Una lista de líneas de texto leídas del archivo
+-- R: Valores válidos
+-- F: Se encarga de abrir el archivo, leer su contenido y devolver las líneas como una lista de strings.
 leerArchivoTarifas :: FilePath -> IO [String]
 leerArchivoTarifas ruta = do
     handle <- openFile ruta ReadMode
@@ -50,14 +60,21 @@ cargarTarifasDesdeArchivo ruta = do
     lineas <- leerArchivoTarifas ruta
     return (parsearTarifas lineas)
 
--- ============================================
--- 3. GUARDAR TARIFAS EN EL ARCHIVO (Persistencia)
--- ============================================
+-- 3. GUARDAR TARIFAS EN EL ARCHIVO
 
+-- E: Una tarifa
+-- S: Una línea de texto con formato "codigo,monto"
+-- R: Valores válidos
+-- F: Se encarga de convertir una tarifa en una línea de texto para guardarla en el archivo.
 tarifaALinea :: Tarifa -> String
 tarifaALinea tarifa =
     show (codigoTarifa tarifa) ++ "," ++ show (montoTarifa tarifa)
 
+
+-- E: Una lista de tarifas y una ruta de archivo
+-- S: Las tarifas guardadas en el archivo
+-- R: Valores válidos
+-- F: Se encarga de guardar una lista de tarifas en un archivo de texto.
 guardarTarifasEnArchivo :: [Tarifa] -> FilePath -> IO ()
 guardarTarifasEnArchivo tarifas ruta = do
     handle <- openFile ruta WriteMode
@@ -66,11 +83,13 @@ guardarTarifasEnArchivo tarifas ruta = do
     hClose handle
     putStrLn ("[OK] Tarifas guardadas persistentemente en: " ++ ruta)
 
--- ============================================
--- 4. FUNCIÓN PRINCIPAL DE CARGA (Reemplazo total)
--- ============================================
 
--- | Carga las tarifas desde un archivo, REEMPLAZA las anteriores y guarda en persistencia
+-- 4. FUNCIÓN PRINCIPAL DE CARGA (Reemplazo total)
+
+-- E: Una ruta de archivo
+-- S: Una lista de tarifas cargadas
+-- R: Valores válidos
+-- F: Carga las tarifas desde un archivo, REEMPLAZA las anteriores y guarda en persistencia
 procesarCargaTarifas :: FilePath -> IO [Tarifa]
 procesarCargaTarifas ruta = do
     existe <- doesFileExist ruta
@@ -94,10 +113,13 @@ procesarCargaTarifas ruta = do
             
             return tarifasNuevas
 
--- ============================================
--- 5. BUSCAR UNA TARIFA POR SU CÓDIGO (Útil para Reservaciones)
--- ============================================
 
+-- 5. BUSCAR UNA TARIFA POR SU CÓDIGO (Útil para Reservaciones)
+
+-- E: Un código de tarifa y una lista de tarifas
+-- S: Maybe Tarifa, donde Just Tarifa si se encuentra, Nothing si no
+-- R: Valores válidos
+-- F: Busca una tarifa por su código en una lista de tarifas.
 buscarTarifa :: Int -> [Tarifa] -> Maybe Tarifa
 buscarTarifa codigo [] = Nothing
 buscarTarifa codigo (tarifa:resto) =
@@ -105,16 +127,23 @@ buscarTarifa codigo (tarifa:resto) =
         then Just tarifa
         else buscarTarifa codigo resto
 
+-- E: Un código de tarifa y una lista de tarifas
+-- S: El monto de la tarifa si se encuentra, 0.0 si no
+-- R: Valores válidos
+-- F: Obtiene el monto de una tarifa por su código.
 obtenerMontoTarifa :: Int -> [Tarifa] -> Double
 obtenerMontoTarifa codigo tarifas =
     case buscarTarifa codigo tarifas of
         Just tarifa -> montoTarifa tarifa
         Nothing -> 0.0
 
--- ============================================
--- 6. MOSTRAR LAS TARIFAS
--- ============================================
 
+-- 6. MOSTRAR LAS TARIFAS
+
+-- E: Una lista de tarifas
+-- S: Muestra en pantalla las tarifas del hotel
+-- R: Valores válidos
+-- F: Muestra en pantalla las tarifas del hotel.
 mostrarTarifas :: [Tarifa] -> IO ()
 mostrarTarifas [] = putStrLn "[AVISO] No hay tarifas cargadas."
 mostrarTarifas tarifas = do
@@ -127,10 +156,13 @@ mostrarUnaTarifa tarifa = do
     putStrLn ("  Código: " ++ show (codigoTarifa tarifa) 
            ++ " | Monto: CRC" ++ show (montoTarifa tarifa))
 
--- ============================================
--- 7. REGISTRAR O ACTUALIZAR UNA TARIFA MANUALMENTE (Bonus)
--- ============================================
 
+-- 7. REGISTRAR O ACTUALIZAR UNA TARIFA MANUALMENTE (Bonus)
+
+-- E: Una lista de tarifas
+-- S: Una lista de tarifas actualizada después de registrar o actualizar una tarifa manualmente
+-- R: Valores válidos
+-- F: Permite al usuario registrar o actualizar una tarifa manualmente, validando el código y el monto, y guardando los cambios en el archivo de persistencia.
 registrarTarifaManual :: [Tarifa] -> IO [Tarifa]
 registrarTarifaManual tarifas = do
     putStrLn "\n========== REGISTRAR TARIFA MANUAL =========="

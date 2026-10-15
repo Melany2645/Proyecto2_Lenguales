@@ -51,10 +51,14 @@ parsearLineaTarifa linea =
 leerEntero :: String -> Maybe Int
 leerEntero texto = readMaybe texto
 
--- ============================================
--- MENÚ PRINCIPAL
--- ============================================
 
+-- MENÚ PRINCIPAL
+
+
+-- E: Ninguna entrada
+-- S: Nos despliega el menú principal y nos permite seleccionar una opción
+-- R: Ninguna
+-- F: Se encarga de mostrar el menú principal del sistema de gestión hotelera y permite al usuario seleccionar una opción para realizar diferentes acciones administrativas, como gestionar información del hotel, tipos de habitaciones, tarifas, reservaciones y estadísticas.
 mostrarMenu :: IO String
 mostrarMenu = do
     limpiarPantalla
@@ -75,9 +79,9 @@ mostrarMenu = do
     putStr "Seleccione una opcion: "
     getLine
 
--- ============================================
+
 -- OPCION 1: INFORMACION DEL HOTEL
--- ============================================
+
 
 opcionInfoHotel :: Maybe HotelInfo -> IO (Maybe HotelInfo)
 opcionInfoHotel infoActual = do
@@ -98,9 +102,9 @@ opcionInfoHotel infoActual = do
         "4" -> do infoLeida <- leerInfoHotel infoActual "hotel_info.txt"; pausar; return infoLeida
         _ -> return infoActual
 
--- ============================================
+
 -- OPCION 2: CARGAR TIPOS
--- ============================================
+
 
 -- F: opcionCargarTipos
 -- E: Lista de tipos de habitaciones existentes
@@ -133,10 +137,13 @@ opcionCargarTipos tiposActuales = do
             pausar
 
             return nuevosTipos
--- ============================================
--- OPCION 3: ASIGNAR HABITACIONES
--- ============================================
 
+-- OPCION 3: ASIGNAR HABITACIONES
+
+-- E: Habitaciones existentes y tipos de habitaciones
+-- S: Lista actualizada de habitaciones
+-- R: Valores válidos
+-- F: Se encarga de asignar nuevas habitaciones al sistema, generando IDs únicos y guardando los cambios en un archivo de persistencia.
 opcionAsignarHabitaciones :: [Habitacion] -> [TipoHabitacion] -> IO [Habitacion]
 opcionAsignarHabitaciones habitaciones tipos = do
     limpiarPantalla
@@ -145,10 +152,13 @@ opcionAsignarHabitaciones habitaciones tipos = do
     pausar
     return nuevasHabitaciones
 
--- ============================================
--- OPCION 4: VER HABITACIONES
--- ============================================
 
+-- OPCION 4: VER HABITACIONES
+
+-- E: Una lista de habitaciones
+-- S: Muestra en pantalla las habitaciones del hotel
+-- R: Valores válidos
+-- F: Se encarga de mostrar en pantalla la lista de habitaciones del hotel, incluyendo su ID y tipo, para que el usuario pueda visualizar la información actual de las habitaciones disponibles en el sistema.
 opcionVerHabitaciones :: [Habitacion] -> IO ()
 opcionVerHabitaciones habitaciones = do
     limpiarPantalla
@@ -156,10 +166,13 @@ opcionVerHabitaciones habitaciones = do
     CantDeHabitaciones.mostrarHabitaciones habitaciones
     pausar
 
--- ============================================
--- OPCION 5: TARIFAS
--- ============================================
 
+-- OPCION 5: TARIFAS
+
+-- E: Una entrada de usuario para la ruta del archivo de tarifas
+-- S: Una lista de tarifas cargadas desde el archivo
+-- R: Valores válidos
+-- F: Se encarga de cargar las tarifas desde un archivo de texto, reemplazando las tarifas existentes en el sistema y guardando los cambios en un archivo de persistencia.
 opcionCargarTarifas :: [Tarifa] -> IO [Tarifa]
 opcionCargarTarifas _ = do
     limpiarPantalla
@@ -190,9 +203,9 @@ opcionCargarTarifas _ = do
                     pausar
                     return nuevasTarifas
 
--- ============================================
--- OPCION 6: SUBMENU DE RESERVACIONES (Solo 1 y 2)
--- ============================================
+
+-- OPCION 6: SUBMENU DE RESERVACIONES
+
 
 opcionGestionReservas :: EstadoSistema -> IO EstadoSistema
 opcionGestionReservas sistema = do
@@ -217,10 +230,13 @@ opcionGestionReservas sistema = do
             pausar
             opcionGestionReservas sistema
 
--- ============================================
--- OPCION 7: CONSULTAR DISPONIBILIDAD POR FECHA
--- ============================================
 
+-- OPCION 7: CONSULTAR DISPONIBILIDAD POR FECHA
+
+-- E: Estado actual del sistema
+-- S: Estado del sistema sin modificaciones
+-- R: Valores válidos
+-- F: Permite al usuario consultar la disponibilidad de habitaciones en una fecha específica, mostrando las habitaciones ocupadas y disponibles, y validando el formato de la fecha ingresada.
 opcionConsultarDisponibilidad :: EstadoSistema -> IO EstadoSistema
 opcionConsultarDisponibilidad sistema = do
     limpiarPantalla
@@ -266,12 +282,19 @@ validarFormatoFecha fecha =
     all (`elem` "0123456789") (take 2 (drop 5 fecha)) &&
     all (`elem` "0123456789") (drop 8 fecha)
 
+-- E: Una fecha en formato AAAA-MM-DD
+-- S: Un valor booleano que indica si la fecha es válida
+-- R: Una fecha con el formato correcto
+-- F: Valida que una fecha tenga el formato AAAA-MM-DD
 -- | Verifica si una fecha está dentro del rango de una reserva
 fechaDentroDeReserva :: String -> String -> String -> Bool
 fechaDentroDeReserva fecha entrada salida =
     fecha >= entrada && fecha < salida
 
--- | Obtiene las habitaciones ocupadas en una fecha específica
+-- E: Estado actual del sistema y una fecha en formato AAAA-MM-DD
+-- S: Una lista de tuplas que contienen habitaciones ocupadas y el ID de la reserva correspondiente
+-- R: Las habitaciones ocupadas en la fecha especificada
+-- F: Obtiene las habitaciones ocupadas en una fecha específica
 habitacionesOcupadasEnFecha :: EstadoSistema -> String -> [(Habitacion, Int)]
 habitacionesOcupadasEnFecha sistema fecha =
     let reservasActivas = filter (\r -> estadoReserva r == Activa && 
@@ -287,6 +310,10 @@ habitacionesDisponiblesEnFecha sistema fecha =
         idsOcupadas = map idHabitacion ocupadas
     in filter (\h -> idHabitacion h `notElem` idsOcupadas) (estadoHab sistema)
 
+-- E: Una tupla que contiene una habitación y el ID de la reserva correspondiente
+-- S: Muestra en pantalla la información de una habitación ocupada junto con el ID de la reserva
+-- R: Una habitación ocupada con su código de reserva
+-- F: Muestra en pantalla la información de una habitación ocupada junto con el ID de la reserva correspondiente.
 -- | Muestra una habitación ocupada con su código de reserva
 mostrarHabitacionOcupada :: (Habitacion, Int) -> IO ()
 mostrarHabitacionOcupada (hab, idReserva) = do
@@ -301,9 +328,9 @@ mostrarHabitacionDisponible hab = do
            ++ " - " ++ nombreTH (tipoHabitacion hab)
            ++ " (Capacidad: " ++ show (maxHuespedes (tipoHabitacion hab)) ++ ")")
 
--- ============================================
+
 -- OPCION 8: ESTADISTICAS
--- ============================================
+
     
 -- F: opcionEstadisticas
 -- E: Estado actual del sistema
@@ -318,10 +345,13 @@ opcionEstadisticas sistema = do
 
     return sistema
 
--- ============================================
--- MENU PRINCIPAL
--- ============================================
 
+-- MENU PRINCIPAL
+
+-- E: Estado actual del sistema
+-- S: Estado del sistema actualizado después de realizar las acciones seleccionadas por el usuario
+-- R: Valores válidos
+-- F: Se encarga de mostrar el menú principal del sistema de gestión hotelera y permite al usuario seleccionar una opción para realizar diferentes acciones administrativas, como gestionar información del hotel, tipos de habitaciones, tarifas, reservaciones y estadísticas.
 menuAdministrativo :: EstadoSistema -> IO EstadoSistema
 menuAdministrativo sistema = do
     opcion <- mostrarMenu
@@ -373,10 +403,13 @@ menuAdministrativo sistema = do
             pausar
             menuAdministrativo sistema
 
--- ============================================
--- MAIN
--- ============================================
 
+-- MAIN
+
+-- E: Ninguna entrada
+-- S: Inicia el sistema de gestión hotelera y permite al usuario interactuar con el menú administrativo para realizar diversas acciones.
+-- R: Ninguna
+-- F: Se encarga de iniciar el sistema de gestión hotelera, cargando la información inicial desde archivos de persistencia si existen, y luego muestra el menú administrativo para que el usuario pueda realizar diversas acciones relacionadas con la gestión del hotel.
 main :: IO ()
 main = do
     putStrLn "Iniciando sistema de gestion hotelera..."
