@@ -1,5 +1,16 @@
 module Facturacion where
 
+-- ============================================
+-- COMPONENTE 3: FACTURACIÓN
+-- ============================================
+-- Este módulo se encarga de convertir una reserva activa en una factura válida.
+-- Revisa el estado de la reserva, calcula impuestos y total, actualiza la reservación
+-- como facturada y genera el comprobante económico para el cliente.
+--
+-- La facturación es la capa que conecta la operación hotelera con el cobro final.
+-- Sin esta parte, el sistema solo registraría la reserva, pero no produciría la salida
+-- financiera del proceso.
+
 import Modelos
 import qualified Reservaciones as R
 import System.Directory (doesFileExist)

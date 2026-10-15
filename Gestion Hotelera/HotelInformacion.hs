@@ -3,116 +3,17 @@ module HotelInformacion where
 import Modelos
 import System.Directory (doesFileExist)
 import System.IO (hFlush, stdout)
-
 -- ============================================
--- ARCHIVO DE PERSISTENCIA
--- ============================================
-
-archivoHotel :: FilePath
-archivoHotel = "hotel_info.txt"
-
-
--- ============================================
--- GUARDAR INFORMACION DEL HOTEL
+-- FUNCIONES DEL MÓDULO
 -- ============================================
 
-guardarHotel :: HotelInfo -> IO ()
-guardarHotel info = do
-    writeFile archivoHotel (unlines
-        [ nombreEmpresa info
-        , cedulaJuridica info
-        , sitioWeb info
-        , telefono info
-        , pais info
-        , provincia info
-        ])
-    putStrLn "[OK] Informacion del hotel guardada."
-
-
--- ============================================
--- CARGAR INFORMACION AUTOMATICAMENTE
--- ============================================
-
-cargarHotel :: IO (Maybe HotelInfo)
-cargarHotel = do
-    existe <- doesFileExist archivoHotel
-
-    if not existe
-        then return Nothing
-        else do
-            contenido <- readFile archivoHotel
-
-            case lines contenido of
-                [nombre, cedula, web, tel, paisHotel, prov] ->
-                    return (Just (HotelInfo
-                        nombre cedula web tel paisHotel prov))
-
-                _ -> do
-                    putStrLn "[ERROR] Archivo del hotel incorrecto."
-                    return Nothing
-
-
--- ============================================
--- SOLICITAR DATOS
--- ============================================
-
-pedirDatoHotel :: String -> IO String
-pedirDatoHotel mensaje = do
-    putStr mensaje
-    hFlush stdout
-    getLine
-
-
--- ============================================
--- REGISTRAR HOTEL
--- ============================================
-
-registrarHotel :: IO HotelInfo
-registrarHotel = do
-    putStrLn "\n=== REGISTRAR INFORMACION DEL HOTEL ==="
-
-    nombre <- pedirDatoHotel "Nombre de la empresa: "
-    cedula <- pedirDatoHotel "Cedula juridica: "
-    web <- pedirDatoHotel "Sitio web: "
-    tel <- pedirDatoHotel "Telefono: "
-    paisHotel <- pedirDatoHotel "Pais: "
-    prov <- pedirDatoHotel "Provincia: "
-
-    let info = HotelInfo nombre cedula web tel paisHotel prov
-
-    guardarHotel info
-    return info
-
-
--- ============================================
--- MOSTRAR HOTEL
--- ============================================
-
-mostrarHotel :: HotelInfo -> IO ()
-mostrarHotel info = do
-    putStrLn "\n=== INFORMACION DEL HOTEL ==="
-    putStrLn ("Empresa: " ++ nombreEmpresa info)
-    putStrLn ("Cedula juridica: " ++ cedulaJuridica info)
-    putStrLn ("Sitio web: " ++ sitioWeb info)
-    putStrLn ("Telefono: " ++ telefono info)
-    putStrLn ("Pais: " ++ pais info)
-    putStrLn ("Provincia: " ++ provincia info)
-
-
--- ============================================
--- FUNCIONES DEL MENU ADMINISTRATIVO
--- ============================================
-
--- OPCION 1: REGISTRAR O MODIFICAR
-
+-- | Carga la información del hotel desde la entrada del usuario
 cargarInfoHotel :: Maybe HotelInfo -> IO (Maybe HotelInfo)
 cargarInfoHotel _ = do
     info <- registrarHotel
     return (Just info)
 
-
--- OPCION 2: MOSTRAR INFORMACION
-
+-- | Muestra la información actual del hotel
 mostrarInfoHotel :: Maybe HotelInfo -> IO ()
 mostrarInfoHotel Nothing =
     putStrLn "[ERROR] No hay informacion del hotel registrada."
